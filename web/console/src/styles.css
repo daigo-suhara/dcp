@@ -125,6 +125,11 @@ h1 {
   color: #ffffff;
 }
 
+.danger {
+  background: var(--c-coral);
+  color: #ffffff;
+}
+
 .service-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -315,6 +320,12 @@ h1 {
 .service-meta a {
   color: var(--c-primary-dark);
   word-break: break-all;
+}
+
+.service-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 .empty-state {

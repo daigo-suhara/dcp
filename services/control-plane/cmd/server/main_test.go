@@ -126,9 +126,30 @@ func TestDeployService(t *testing.T) {
 	}
 }
 
+func TestDeleteService(t *testing.T) {
+	manager := &fakeServiceManager{}
+	api := &apiServer{
+		services:  manager,
+		namespace: "dcp-system",
+	}
+
+	req := httptest.NewRequest(http.MethodDelete, "http://172.16.100.11:8080/api/v1/services/hello-dcp", nil)
+	rec := httptest.NewRecorder()
+
+	api.deleteService(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected status %d, got %d", http.StatusNoContent, rec.Code)
+	}
+	if len(manager.deleted) != 1 || manager.deleted[0] != "hello-dcp" {
+		t.Fatalf("unexpected delete calls: %+v", manager.deleted)
+	}
+}
+
 type fakeServiceManager struct {
 	services []deployedService
 	deployed []deployRequest
+	deleted  []string
 }
 
 func (f *fakeServiceManager) List(context.Context) ([]deployedService, error) {
@@ -150,6 +171,11 @@ func (f *fakeServiceManager) Deploy(_ context.Context, req deployRequest) (deplo
 		Ready:     true,
 		URL:       "/cloudrun/" + req.Name + "/",
 	}, nil
+}
+
+func (f *fakeServiceManager) Delete(_ context.Context, name string) error {
+	f.deleted = append(f.deleted, name)
+	return nil
 }
 
 func (f *fakeServiceManager) TargetURL(context.Context, string) (string, error) {

@@ -41,6 +41,7 @@ function App() {
   const [services, setServices] = useState<DeployedService[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingName, setDeletingName] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
@@ -102,6 +103,34 @@ function App() {
       setError(deployError instanceof Error ? deployError.message : "failed to deploy service");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete(name: string) {
+    if (!window.confirm(`Delete ${name}?`)) {
+      return;
+    }
+
+    setDeletingName(name);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch(`/api/v1/services/${name}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok && response.status !== 204) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error ?? "failed to delete service");
+      }
+
+      setMessage(`Deleted ${name}`);
+      await loadServices();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "failed to delete service");
+    } finally {
+      setDeletingName("");
     }
   }
 
@@ -216,6 +245,16 @@ function App() {
                     <span>{service.namespace}</span>
                     <span>{service.createdAt ?? "just now"}</span>
                     {service.url ? <a href={service.url}>{service.url}</a> : null}
+                  </div>
+                  <div className="service-actions">
+                    <button
+                      className="pill danger button"
+                      type="button"
+                      onClick={() => handleDelete(service.name)}
+                      disabled={deletingName === service.name}
+                    >
+                      {deletingName === service.name ? "Deleting..." : "Delete"}
+                    </button>
                   </div>
                 </article>
               ))

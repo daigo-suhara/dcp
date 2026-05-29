@@ -48,6 +48,7 @@ type deployedService struct {
 type serviceManager interface {
 	List(context.Context) ([]deployedService, error)
 	Deploy(context.Context, deployRequest) (deployedService, error)
+	Delete(context.Context, string) error
 	TargetURL(context.Context, string) (string, error)
 }
 
@@ -71,6 +72,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/platform", platform)
 	mux.HandleFunc("GET /api/v1/services", api.listServices)
 	mux.HandleFunc("POST /api/v1/services", api.deployService)
+	mux.HandleFunc("DELETE /api/v1/services/", api.deleteService)
 	mux.HandleFunc("/cloudrun/", api.proxyService)
 	mux.HandleFunc("/services/", api.proxyService)
 
@@ -208,6 +210,32 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 	a.setPublicURL(r, &service)
 
 	writeJSON(w, http.StatusCreated, service)
+}
+
+func (a *apiServer) deleteService(w http.ResponseWriter, r *http.Request) {
+	if a.services == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"error": "service manager is unavailable",
+		})
+		return
+	}
+
+	name := strings.TrimPrefix(r.URL.Path, "/api/v1/services/")
+	name = strings.Trim(name, "/")
+	if name == "" || !isDNSLabel(name) {
+		http.NotFound(w, r)
+		return
+	}
+
+	if err := a.services.Delete(r.Context(), name); err != nil {
+		a.logger.Error("delete service failed", "error", err, "name", name)
+		writeJSON(w, http.StatusBadGateway, map[string]string{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {

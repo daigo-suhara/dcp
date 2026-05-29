@@ -259,6 +259,26 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 	return service, nil
 }
 
+func (m *knativeServiceManager) Delete(ctx context.Context, name string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services/%s", m.baseURL, m.namespace, name), nil)
+	if err != nil {
+		return err
+	}
+	m.authorize(req)
+
+	res, err := m.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 300 {
+		return decodeAPIError(res)
+	}
+
+	return nil
+}
+
 func publicServiceURL(name string) string {
 	return fmt.Sprintf("/cloudrun/%s/", name)
 }
