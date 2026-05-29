@@ -5,6 +5,7 @@ metadata:
   labels:
     {{- include "dcp.labels" . | nindent 4 }}
     app.kubernetes.io/component: cloudrun
+    networking.knative.dev/visibility: cluster-local
 spec:
   template:
     metadata:

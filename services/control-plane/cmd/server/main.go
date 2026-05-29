@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
@@ -46,6 +48,7 @@ type deployedService struct {
 type serviceManager interface {
 	List(context.Context) ([]deployedService, error)
 	Deploy(context.Context, deployRequest) (deployedService, error)
+	TargetURL(context.Context, string) (string, error)
 }
 
 func main() {
@@ -68,6 +71,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/platform", platform)
 	mux.HandleFunc("GET /api/v1/services", api.listServices)
 	mux.HandleFunc("POST /api/v1/services", api.deployService)
+	mux.HandleFunc("/services/", api.proxyService)
 
 	server := &http.Server{
 		Addr:              addr,
@@ -201,6 +205,72 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusCreated, service)
+}
+
+func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
+	if a.services == nil {
+		http.Error(w, "service manager is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	trimmed := strings.TrimPrefix(r.URL.Path, "/services/")
+	if trimmed == "" {
+		http.NotFound(w, r)
+		return
+	}
+	parts := strings.SplitN(trimmed, "/", 2)
+	name := parts[0]
+	if !isDNSLabel(name) {
+		http.NotFound(w, r)
+		return
+	}
+
+	targetURL, err := a.services.TargetURL(r.Context(), name)
+	if err != nil {
+		a.logger.Error("resolve service target failed", "error", err, "name", name)
+		http.Error(w, "service not found", http.StatusNotFound)
+		return
+	}
+
+	target, err := url.Parse(targetURL)
+	if err != nil {
+		a.logger.Error("invalid service target url", "error", err, "name", name, "target", targetURL)
+		http.Error(w, "invalid backend url", http.StatusBadGateway)
+		return
+	}
+
+	remainder := ""
+	if len(parts) == 2 {
+		remainder = "/" + parts[1]
+	}
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	proxy.Director = func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.URL.Path = singleJoiningSlash(target.Path, remainder)
+		req.URL.RawQuery = r.URL.RawQuery
+		req.Host = target.Host
+		req.Header.Set("X-Forwarded-Host", r.Host)
+		req.Header.Set("X-Forwarded-Proto", "http")
+	}
+	proxy.ErrorHandler = func(_ http.ResponseWriter, _ *http.Request, proxyErr error) {
+		a.logger.Error("proxy service failed", "error", proxyErr, "name", name)
+		http.Error(w, "upstream unavailable", http.StatusBadGateway)
+	}
+	proxy.ServeHTTP(w, r)
+}
+
+func singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	default:
+		return a + b
+	}
 }
 
 func validateDeployRequest(req deployRequest) error {

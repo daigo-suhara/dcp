@@ -108,7 +108,7 @@ func (m *knativeServiceManager) List(ctx context.Context) ([]deployedService, er
 			Namespace:  m.namespace,
 			Generation: item.Metadata.Generation,
 			CreatedAt:  item.Metadata.CreationTimestamp.UTC().Format(time.RFC3339),
-			URL:        item.Status.URL,
+			URL:        publicServiceURL(item.Metadata.Name),
 		}
 		if len(item.Spec.Template.Spec.Containers) > 0 {
 			service.Image = item.Spec.Template.Spec.Containers[0].Image
@@ -124,6 +124,38 @@ func (m *knativeServiceManager) List(ctx context.Context) ([]deployedService, er
 	}
 
 	return out, nil
+}
+
+func (m *knativeServiceManager) TargetURL(ctx context.Context, name string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services/%s", m.baseURL, m.namespace, name), nil)
+	if err != nil {
+		return "", err
+	}
+	m.authorize(req)
+
+	res, err := m.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 300 {
+		return "", decodeAPIError(res)
+	}
+
+	var payload struct {
+		Status struct {
+			URL string `json:"url"`
+		} `json:"status"`
+	}
+
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		return "", err
+	}
+	if payload.Status.URL == "" {
+		return "", fmt.Errorf("service %q has no target url", name)
+	}
+	return payload.Status.URL, nil
 }
 
 func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (deployedService, error) {
@@ -211,7 +243,7 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 		Namespace:  payload.Metadata.Namespace,
 		Generation: payload.Metadata.Generation,
 		CreatedAt:  payload.Metadata.CreationTimestamp.UTC().Format(time.RFC3339),
-		URL:        payload.Status.URL,
+		URL:        publicServiceURL(payload.Metadata.Name),
 	}
 	if len(payload.Spec.Template.Spec.Containers) > 0 {
 		service.Image = payload.Spec.Template.Spec.Containers[0].Image
@@ -225,6 +257,10 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 	}
 
 	return service, nil
+}
+
+func publicServiceURL(name string) string {
+	return fmt.Sprintf("/services/%s/", name)
 }
 
 func (m *knativeServiceManager) authorize(req *http.Request) {

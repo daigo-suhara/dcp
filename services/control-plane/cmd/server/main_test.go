@@ -90,6 +90,9 @@ func TestListServices(t *testing.T) {
 	if len(got.Services) != 1 || got.Services[0].Name != "hello-dcp" {
 		t.Fatalf("unexpected services payload: %+v", got.Services)
 	}
+	if got.Services[0].URL != "/services/hello-dcp/" {
+		t.Fatalf("expected public service url, got %q", got.Services[0].URL)
+	}
 }
 
 func TestDeployService(t *testing.T) {
@@ -118,6 +121,9 @@ func TestDeployService(t *testing.T) {
 	if got.Name != "hello-dcp" || got.Image != "ghcr.io/example/hello-dcp:latest" {
 		t.Fatalf("unexpected deploy response: %+v", got)
 	}
+	if got.URL != "/services/hello-dcp/" {
+		t.Fatalf("expected public service url, got %q", got.URL)
+	}
 }
 
 type fakeServiceManager struct {
@@ -126,7 +132,13 @@ type fakeServiceManager struct {
 }
 
 func (f *fakeServiceManager) List(context.Context) ([]deployedService, error) {
-	return append([]deployedService(nil), f.services...), nil
+	out := append([]deployedService(nil), f.services...)
+	for i := range out {
+		if out[i].URL == "" {
+			out[i].URL = "/services/" + out[i].Name + "/"
+		}
+	}
+	return out, nil
 }
 
 func (f *fakeServiceManager) Deploy(_ context.Context, req deployRequest) (deployedService, error) {
@@ -136,5 +148,10 @@ func (f *fakeServiceManager) Deploy(_ context.Context, req deployRequest) (deplo
 		Image:     req.Image,
 		Namespace: "dcp-system",
 		Ready:     true,
+		URL:       "/services/" + req.Name + "/",
 	}, nil
+}
+
+func (f *fakeServiceManager) TargetURL(context.Context, string) (string, error) {
+	return "http://hello-dcp.dcp-system.svc.cluster.local", nil
 }
