@@ -16,6 +16,7 @@ console:
   image:
     repository: dcp-console
   service:
+    type: LoadBalancer
     port: 8080
 
 cloudrun:

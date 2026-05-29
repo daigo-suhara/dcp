@@ -33,6 +33,7 @@ metadata:
     {{- include "dcp.labels" . | nindent 4 }}
     app.kubernetes.io/component: console
 spec:
+  type: {{ .Values.console.service.type }}
   ports:
     - name: http
       port: {{ .Values.console.service.port }}
