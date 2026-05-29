@@ -1,16 +1,12 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: serving.knative.dev/v1
+kind: Service
 metadata:
   name: {{ include "dcp.fullname" . }}-cloudrun
   labels:
     {{- include "dcp.labels" . | nindent 4 }}
     app.kubernetes.io/component: cloudrun
+    networking.knative.dev/visibility: cluster-local
 spec:
-  replicas: {{ .Values.cloudrun.replicaCount }}
-  selector:
-    matchLabels:
-      app.kubernetes.io/instance: {{ .Release.Name }}
-      app.kubernetes.io/component: cloudrun
   template:
     metadata:
       labels:
@@ -22,29 +18,12 @@ spec:
           image: {{ include "dcp.image" (dict "root" . "repository" .Values.cloudrun.image.repository) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: http
-              containerPort: 8080
+            - containerPort: {{ .Values.cloudrun.service.port }}
           readinessProbe:
             httpGet:
               path: /readyz
-              port: http
+              port: {{ .Values.cloudrun.service.port }}
           livenessProbe:
             httpGet:
               path: /healthz
-              port: http
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ include "dcp.fullname" . }}-cloudrun
-  labels:
-    {{- include "dcp.labels" . | nindent 4 }}
-    app.kubernetes.io/component: cloudrun
-spec:
-  ports:
-    - name: http
-      port: {{ .Values.cloudrun.service.port }}
-      targetPort: http
-  selector:
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/component: cloudrun
+              port: {{ .Values.cloudrun.service.port }}
