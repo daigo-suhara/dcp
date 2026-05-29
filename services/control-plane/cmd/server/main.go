@@ -307,7 +307,7 @@ func (a *apiServer) setPublicURL(r *http.Request, service *deployedService) {
 func publicBaseURL(r *http.Request) string {
 	proto := r.Header.Get("X-Forwarded-Proto")
 	if proto == "" {
-		proto = "http"
+		proto = "https"
 	}
 	host := r.Header.Get("X-Forwarded-Host")
 	if host == "" {

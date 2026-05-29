@@ -90,7 +90,7 @@ func TestListServices(t *testing.T) {
 	if len(got.Services) != 1 || got.Services[0].Name != "hello-dcp" {
 		t.Fatalf("unexpected services payload: %+v", got.Services)
 	}
-	if got.Services[0].URL != "http://172.16.100.11:8080/cloudrun/hello-dcp/" {
+	if got.Services[0].URL != "https://172.16.100.11:8080/cloudrun/hello-dcp/" {
 		t.Fatalf("expected public service url, got %q", got.Services[0].URL)
 	}
 }
@@ -121,7 +121,7 @@ func TestDeployService(t *testing.T) {
 	if got.Name != "hello-dcp" || got.Image != "ghcr.io/example/hello-dcp:latest" {
 		t.Fatalf("unexpected deploy response: %+v", got)
 	}
-	if got.URL != "http://172.16.100.11:8080/cloudrun/hello-dcp/" {
+	if got.URL != "https://172.16.100.11:8080/cloudrun/hello-dcp/" {
 		t.Fatalf("expected public service url, got %q", got.URL)
 	}
 }
