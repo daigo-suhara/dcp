@@ -260,7 +260,7 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 }
 
 func publicServiceURL(name string) string {
-	return fmt.Sprintf("/services/%s/", name)
+	return fmt.Sprintf("/cloudrun/%s/", name)
 }
 
 func (m *knativeServiceManager) authorize(req *http.Request) {

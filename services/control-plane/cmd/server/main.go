@@ -71,6 +71,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/platform", platform)
 	mux.HandleFunc("GET /api/v1/services", api.listServices)
 	mux.HandleFunc("POST /api/v1/services", api.deployService)
+	mux.HandleFunc("/cloudrun/", api.proxyService)
 	mux.HandleFunc("/services/", api.proxyService)
 
 	server := &http.Server{
@@ -161,6 +162,7 @@ func (a *apiServer) listServices(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	a.setPublicURLs(r, services)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"namespace": a.namespace,
@@ -203,6 +205,7 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	a.setPublicURL(r, &service)
 
 	writeJSON(w, http.StatusCreated, service)
 }
@@ -213,7 +216,10 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	trimmed := strings.TrimPrefix(r.URL.Path, "/services/")
+	trimmed := strings.TrimPrefix(r.URL.Path, "/cloudrun/")
+	if trimmed == r.URL.Path {
+		trimmed = strings.TrimPrefix(r.URL.Path, "/services/")
+	}
 	if trimmed == "" {
 		http.NotFound(w, r)
 		return
@@ -258,6 +264,28 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "upstream unavailable", http.StatusBadGateway)
 	}
 	proxy.ServeHTTP(w, r)
+}
+
+func (a *apiServer) setPublicURLs(r *http.Request, services []deployedService) {
+	for i := range services {
+		a.setPublicURL(r, &services[i])
+	}
+}
+
+func (a *apiServer) setPublicURL(r *http.Request, service *deployedService) {
+	service.URL = fmt.Sprintf("%s/cloudrun/%s/", publicBaseURL(r), service.Name)
+}
+
+func publicBaseURL(r *http.Request) string {
+	proto := r.Header.Get("X-Forwarded-Proto")
+	if proto == "" {
+		proto = "http"
+	}
+	host := r.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = r.Host
+	}
+	return fmt.Sprintf("%s://%s", proto, host)
 }
 
 func singleJoiningSlash(a, b string) string {

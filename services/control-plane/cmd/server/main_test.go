@@ -68,7 +68,7 @@ func TestListServices(t *testing.T) {
 		namespace: "dcp-system",
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/services", nil)
+	req := httptest.NewRequest(http.MethodGet, "http://172.16.100.11:8080/api/v1/services", nil)
 	rec := httptest.NewRecorder()
 
 	api.listServices(rec, req)
@@ -90,7 +90,7 @@ func TestListServices(t *testing.T) {
 	if len(got.Services) != 1 || got.Services[0].Name != "hello-dcp" {
 		t.Fatalf("unexpected services payload: %+v", got.Services)
 	}
-	if got.Services[0].URL != "/services/hello-dcp/" {
+	if got.Services[0].URL != "http://172.16.100.11:8080/cloudrun/hello-dcp/" {
 		t.Fatalf("expected public service url, got %q", got.Services[0].URL)
 	}
 }
@@ -102,7 +102,7 @@ func TestDeployService(t *testing.T) {
 		namespace: "dcp-system",
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/services", strings.NewReader(`{"name":"hello-dcp","image":"ghcr.io/example/hello-dcp:latest","port":8080}`))
+	req := httptest.NewRequest(http.MethodPost, "http://172.16.100.11:8080/api/v1/services", strings.NewReader(`{"name":"hello-dcp","image":"ghcr.io/example/hello-dcp:latest","port":8080}`))
 	rec := httptest.NewRecorder()
 
 	api.deployService(rec, req)
@@ -121,7 +121,7 @@ func TestDeployService(t *testing.T) {
 	if got.Name != "hello-dcp" || got.Image != "ghcr.io/example/hello-dcp:latest" {
 		t.Fatalf("unexpected deploy response: %+v", got)
 	}
-	if got.URL != "/services/hello-dcp/" {
+	if got.URL != "http://172.16.100.11:8080/cloudrun/hello-dcp/" {
 		t.Fatalf("expected public service url, got %q", got.URL)
 	}
 }
@@ -135,7 +135,7 @@ func (f *fakeServiceManager) List(context.Context) ([]deployedService, error) {
 	out := append([]deployedService(nil), f.services...)
 	for i := range out {
 		if out[i].URL == "" {
-			out[i].URL = "/services/" + out[i].Name + "/"
+			out[i].URL = "/cloudrun/" + out[i].Name + "/"
 		}
 	}
 	return out, nil
@@ -148,7 +148,7 @@ func (f *fakeServiceManager) Deploy(_ context.Context, req deployRequest) (deplo
 		Image:     req.Image,
 		Namespace: "dcp-system",
 		Ready:     true,
-		URL:       "/services/" + req.Name + "/",
+		URL:       "/cloudrun/" + req.Name + "/",
 	}, nil
 }
 
