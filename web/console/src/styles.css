@@ -141,51 +141,6 @@ h1 {
   margin-top: 24px;
 }
 
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 24px;
-}
-
-.overview-card {
-  display: grid;
-  gap: 10px;
-  padding: 24px;
-  border-radius: 28px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-}
-
-.overview-card h2 {
-  margin: 0;
-  font-size: 20px;
-  line-height: 1.2;
-  letter-spacing: 0.1em;
-}
-
-.overview-card strong {
-  font-size: 28px;
-  line-height: 1;
-}
-
-.overview-card span {
-  font-size: 13px;
-  line-height: 1.8;
-}
-
-.overview-card.cyan {
-  background: var(--c-surface-cyan);
-}
-
-.overview-card.pink {
-  background: var(--c-surface-pink);
-}
-
-.overview-card.green {
-  background: rgba(145, 222, 169, 0.18);
-}
-
 .service-card {
   padding: 24px;
   border-radius: 28px;
@@ -209,24 +164,11 @@ h1 {
   width: 248px;
   display: grid;
   align-content: start;
-  gap: 14px;
-  padding: 16px 12px;
+  gap: 8px;
+  padding: 12px 10px;
   border-right: 1px solid rgba(119, 119, 119, 0.1);
   background: rgba(255, 255, 255, 0.96);
   overflow: auto;
-}
-
-.sidebar-brand {
-  display: grid;
-  gap: 4px;
-  padding: 4px 6px 8px;
-}
-
-.sidebar-brand h2 {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.1;
-  letter-spacing: 0.08em;
 }
 
 .sidebar-nav {

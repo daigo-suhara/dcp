@@ -46,7 +46,6 @@ function App() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
-  const readyCount = services.filter((service) => service.ready).length;
 
   useEffect(() => {
     void loadServices();
@@ -150,11 +149,6 @@ function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="navigation">
-        <div className="sidebar-brand">
-          <p className="eyebrow">dcp</p>
-          <h2>Console</h2>
-        </div>
-
         <nav className="sidebar-nav">
           {navItems.map((item) => (
             <a
@@ -193,31 +187,6 @@ function App() {
               GitHub Actions
             </a>
           </div>
-        </section>
-
-        <section className="overview-grid" aria-label="platform-overview">
-          <article className="overview-card cyan">
-            <p className="panel-kicker">Platform</p>
-            <h2>Namespace</h2>
-            <strong>{namespace}</strong>
-            <span>デプロイ先はここに集約します。</span>
-          </article>
-
-          <article className="overview-card pink">
-            <p className="panel-kicker">Status</p>
-            <h2>Ready / Total</h2>
-            <strong>
-              {readyCount} / {services.length}
-            </strong>
-            <span>Knative Service の状態を毎回更新します。</span>
-          </article>
-
-          <article className="overview-card green">
-            <p className="panel-kicker">Stack</p>
-            <h2>Components</h2>
-            <strong>Control Plane</strong>
-            <span>Console から CloudRun を一気に展開します。</span>
-          </article>
         </section>
 
         <section className="dashboard-grid" aria-label="deployment-console">
