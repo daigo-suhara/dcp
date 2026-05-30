@@ -22,11 +22,11 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: web/console/package-lock.json
+          cache-dependency-path: services/console/package-lock.json
       - run: npm ci
-        working-directory: web/console
+        working-directory: services/console
       - run: npm run build
-        working-directory: web/console
+        working-directory: services/console
       - uses: azure/setup-helm@v4
       - run: helm template dcp charts/dcp
 
@@ -42,7 +42,7 @@ jobs:
           - name: dcp-cloudrun
             dockerfile: services/cloudrun/Dockerfile
           - name: dcp-console
-            dockerfile: web/console/Dockerfile
+            dockerfile: services/console/Dockerfile
           - name: hello-world
             dockerfile: services/hello-world/Dockerfile
     steps:

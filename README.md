@@ -20,12 +20,12 @@ k8sの上にGCPのようなクラウドを作るOSSプロジェクト
 ```sh
 make test
 make build
-cd web/console && npm ci && npm run build
+cd services/console && npm ci && npm run build
 helm template dcp charts/dcp
 ```
 
 ## コンポーネント
 - `services/control-plane`: プラットフォーム管理API
 - `services/cloudrun`: CloudRun相当サービスAPI
-- `web/console`: React製webコンソール
+- `services/console`: webコンソール
 - `charts/dcp`: Kubernetes配信用Helm chart
