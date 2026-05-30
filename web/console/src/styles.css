@@ -117,6 +117,19 @@ a {
   overflow: auto;
 }
 
+.sidebar-brand {
+  padding: 4px 8px 2px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.sidebar-divider {
+  height: 1px;
+  margin: 2px 4px 8px;
+  background: rgba(119, 119, 119, 0.12);
+}
+
 .sidebar-nav {
   display: grid;
   gap: 8px;
@@ -175,6 +188,7 @@ a {
   flex-wrap: wrap;
   gap: 16px;
   margin-top: 32px;
+  justify-content: flex-end;
 }
 
 .lead {
@@ -269,14 +283,13 @@ h1 {
   letter-spacing: 0.08em;
 }
 
+.text-input::placeholder {
+  color: rgba(119, 119, 119, 0.45);
+}
+
 .text-input:focus {
   outline: 2px solid rgba(139, 208, 221, 0.55);
   outline-offset: 2px;
-}
-
-.helper {
-  margin: 16px 0 0;
-  font-size: 13px;
 }
 
 .button {

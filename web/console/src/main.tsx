@@ -25,9 +25,9 @@ type DeployForm = {
 };
 
 const initialForm: DeployForm = {
-  name: "hello-dcp",
-  image: "ghcr.io/daigo-suhara/hello-dcp:latest",
-  port: "8080"
+  name: "",
+  image: "",
+  port: ""
 };
 
 const navItems = [
@@ -149,6 +149,8 @@ function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="navigation">
+        <div className="sidebar-brand">DCP</div>
+        <div className="sidebar-divider" aria-hidden="true" />
         <nav className="sidebar-nav">
           {navItems.map((item) => (
             <a
@@ -173,30 +175,30 @@ function App() {
           <form className="deploy-card" id="deploy" onSubmit={handleSubmit}>
             <div className="panel-header">
               <div>
-                <p className="panel-kicker">Deploy</p>
-                <h2>コンテナをデプロイ</h2>
+                <p className="panel-kicker">サービスの作成</p>
+                <h2>コンテナを作成</h2>
               </div>
             </div>
 
             <div className="field-grid">
               <label className="field">
-                <span className="field-label">Service Name</span>
+                <span className="field-label">サービス名</span>
                 <input
                   className="text-input"
                   value={form.name}
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="hello-dcp"
+                  placeholder="service-name"
                   autoComplete="off"
                 />
               </label>
 
               <label className="field">
-                <span className="field-label">Image</span>
+                <span className="field-label">コンテナイメージのURL</span>
                 <input
                   className="text-input"
                   value={form.image}
                   onChange={(event) => setForm((current) => ({ ...current, image: event.target.value }))}
-                  placeholder="ghcr.io/org/app:latest"
+                  placeholder="ghcr.io/org/app:tag"
                   autoComplete="off"
                 />
               </label>
@@ -210,17 +212,14 @@ function App() {
                   max={65535}
                   value={form.port}
                   onChange={(event) => setForm((current) => ({ ...current, port: event.target.value }))}
+                  placeholder="8080"
                 />
               </label>
             </div>
 
-            <p className="helper">
-              名前は DNS label 形式、image は OCI イメージを指定します。Knative Service として作成されます。
-            </p>
-
             <div className="actions">
               <button className="pill primary button" type="submit" disabled={submitting}>
-                {submitting ? "Deploying..." : "Deploy container"}
+                {submitting ? "Deploying..." : "作成"}
               </button>
             </div>
 
@@ -231,10 +230,9 @@ function App() {
           <section className="service-card panel" id="services">
             <div className="panel-header">
               <div>
-                <p className="panel-kicker">Services</p>
+                <p className="panel-kicker">サービス</p>
                 <h2>デプロイ済みサービス</h2>
               </div>
-              <span className="pill mini">{loading ? "Loading..." : `${services.length} items`}</span>
             </div>
 
             <div className="service-list">
@@ -269,7 +267,7 @@ function App() {
                 ))
               ) : (
                 <div className="empty-state">
-                  <p>{loading ? "Loading services..." : "まだサービスはありません。"}</p>
+                  <p>{loading ? "Loading..." : "まだサービスはありません。"}</p>
                 </div>
               )}
             </div>
