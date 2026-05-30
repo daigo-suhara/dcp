@@ -10,6 +10,7 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "esbuild": "0.23.1"
+    "esbuild": "0.23.1",
+    "tailwindcss": "^3.4.17"
   }
 }
