@@ -64,12 +64,12 @@ function parseRoute(hash: string): RouteState {
 }
 
 function App() {
-  const [namespace, setNamespace] = useState("dcp-system");
   const [services, setServices] = useState<DeployedService[]>([]);
   const [route, setRoute] = useState<RouteState>(() => parseRoute(window.location.hash));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingName, setDeletingName] = useState("");
+  const [pendingDeleteName, setPendingDeleteName] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
@@ -104,7 +104,6 @@ function App() {
         throw new Error("error" in data && data.error ? data.error : "failed to load services");
       }
       if ("namespace" in data) {
-        setNamespace(data.namespace);
         setServices(data.services ?? []);
       }
     } catch (loadError) {
@@ -142,7 +141,7 @@ function App() {
         throw new Error("error" in data && data.error ? data.error : "failed to deploy service");
       }
 
-      if ("name" in data && "namespace" in data) {
+      if ("name" in data) {
         setMessage(`${data.name} を作成しました`);
       }
       setForm((current) => ({ ...current, name: "hello-dcp" }));
@@ -154,11 +153,16 @@ function App() {
     }
   }
 
-  async function handleDelete(name: string) {
-    if (!window.confirm(`${name} を削除しますか？`)) {
-      return;
-    }
+  function requestDelete(name: string) {
+    setPendingDeleteName(name);
+  }
 
+  function cancelDelete() {
+    setPendingDeleteName("");
+  }
+
+  async function confirmDelete(name: string) {
+    setPendingDeleteName("");
     setDeletingName(name);
     setError("");
     setMessage("");
@@ -299,7 +303,7 @@ function App() {
                   <button
                     className="pill danger button"
                     type="button"
-                    onClick={() => handleDelete(selectedService.name)}
+                    onClick={() => requestDelete(selectedService.name)}
                     disabled={deletingName === selectedService.name}
                   >
                     {deletingName === selectedService.name ? "削除中..." : "削除"}
@@ -314,10 +318,6 @@ function App() {
                   <div>
                     <dt>コンテナイメージ</dt>
                     <dd>{selectedService.image}</dd>
-                  </div>
-                  <div>
-                    <dt>Namespace</dt>
-                    <dd>{selectedService.namespace}</dd>
                   </div>
                   <div>
                     <dt>作成時刻</dt>
@@ -361,6 +361,35 @@ function App() {
           </section>
         </section>
       </section>
+
+      {pendingDeleteName ? (
+        <div className="delete-overlay" role="presentation" onClick={cancelDelete}>
+          <section
+            className="delete-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="削除の確認"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <p className="panel-kicker">削除の確認</p>
+            <h3>{pendingDeleteName}</h3>
+            <p>このサービスを削除しますか？</p>
+            <div className="delete-actions">
+              <button className="pill button delete-cancel" type="button" onClick={cancelDelete}>
+                キャンセル
+              </button>
+              <button
+                className="pill danger button"
+                type="button"
+                onClick={() => confirmDelete(pendingDeleteName)}
+                disabled={deletingName === pendingDeleteName}
+              >
+                {deletingName === pendingDeleteName ? "削除中..." : "削除"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
