@@ -155,7 +155,7 @@ function App() {
   }
 
   async function handleDelete(name: string) {
-    if (!window.confirm(`Delete ${name}?`)) {
+    if (!window.confirm(`${name} を削除しますか？`)) {
       return;
     }
 
@@ -173,7 +173,7 @@ function App() {
         throw new Error(data.error ?? "failed to delete service");
       }
 
-      setMessage(`Deleted ${name}`);
+      setMessage(`${name} を削除しました`);
       if (route.selectedServiceName === name) {
         window.location.hash = "#services";
       }
@@ -302,7 +302,7 @@ function App() {
                     onClick={() => handleDelete(selectedService.name)}
                     disabled={deletingName === selectedService.name}
                   >
-                    {deletingName === selectedService.name ? "Deleting..." : "Delete"}
+                    {deletingName === selectedService.name ? "削除中..." : "削除"}
                   </button>
                 </div>
 
