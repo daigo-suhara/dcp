@@ -24,12 +24,6 @@ type DeployForm = {
   port: string;
 };
 
-const featureCards = [
-  { name: "Control Plane", status: "稼働準備", color: "cyan" },
-  { name: "Web Console", status: "デプロイ可能", color: "pink" },
-  { name: "Knative", status: "サービス展開中", color: "green" }
-];
-
 const initialForm: DeployForm = {
   name: "hello-dcp",
   image: "ghcr.io/daigo-suhara/hello-dcp:latest",
@@ -45,6 +39,7 @@ function App() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
+  const readyCount = services.filter((service) => service.ready).length;
 
   useEffect(() => {
     void loadServices();
@@ -161,10 +156,35 @@ function App() {
           <a className="pill tertiary" href="/api/v1/services">
             Deploy API
           </a>
-          <a className="pill secondary" href="https://github.com/">
+          <a className="pill secondary" href="https://github.com/daigo-suhara/dcp/actions">
             GitHub Actions
           </a>
         </div>
+      </section>
+
+      <section className="overview-grid" aria-label="platform-overview">
+        <article className="overview-card cyan">
+          <p className="panel-kicker">Platform</p>
+          <h2>Namespace</h2>
+          <strong>{namespace}</strong>
+          <span>デプロイ先はここに集約します。</span>
+        </article>
+
+        <article className="overview-card pink">
+          <p className="panel-kicker">Status</p>
+          <h2>Ready / Total</h2>
+          <strong>
+            {readyCount} / {services.length}
+          </strong>
+          <span>Knative Service の状態を毎回更新します。</span>
+        </article>
+
+        <article className="overview-card green">
+          <p className="panel-kicker">Stack</p>
+          <h2>Components</h2>
+          <strong>Control Plane</strong>
+          <span>Console から CloudRun を一気に展開します。</span>
+        </article>
       </section>
 
       <section className="dashboard-grid" aria-label="deployment-console">
@@ -217,11 +237,11 @@ function App() {
             名前は DNS label 形式、image は OCI イメージを指定します。Knative Service として作成されます。
           </p>
 
-          <div className="actions">
-            <button className="pill primary button" type="submit" disabled={submitting}>
-              {submitting ? "Deploying..." : "Deploy container"}
-            </button>
-          </div>
+            <div className="actions">
+              <button className="pill primary button" type="submit" disabled={submitting}>
+                {submitting ? "Deploying..." : "Deploy container"}
+              </button>
+            </div>
 
           {message ? <p className="status-banner success">{message}</p> : null}
           {error ? <p className="status-banner error">{error}</p> : null}
@@ -273,16 +293,6 @@ function App() {
             )}
           </div>
         </section>
-      </section>
-
-      <section className="service-grid" aria-label="services">
-        {featureCards.map((service) => (
-          <article className={`service-card ${service.color}`} key={service.name}>
-            <span className="status">{service.status}</span>
-            <h2>{service.name}</h2>
-            <p>OCI コンテナを Knative Service として展開し、namespace 単位で扱います。</p>
-          </article>
-        ))}
       </section>
     </main>
   );
