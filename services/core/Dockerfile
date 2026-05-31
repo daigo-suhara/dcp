@@ -2,6 +2,7 @@ FROM golang:1.22-alpine AS build
 
 WORKDIR /src
 COPY go.mod ./
+COPY go.sum ./
 COPY services/core ./services/core
 RUN go build -trimpath -ldflags="-s -w" -o /out/core ./services/core/cmd/server
 
