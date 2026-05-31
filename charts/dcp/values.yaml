@@ -5,7 +5,7 @@ image:
   tag: latest
 
 storage:
-  className: rook-ceph-block
+  className: general
 
 core:
   replicaCount: 1
