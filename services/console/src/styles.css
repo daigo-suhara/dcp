@@ -515,10 +515,76 @@ h1 {
   color: #b15b5b;
 }
 
+.toast {
+  position: fixed;
+  top: 72px;
+  right: 20px;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(119, 119, 119, 0.18);
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: 0.05em;
+}
+
+.toast-success {
+  color: #3f8a58;
+}
+
+.toast::after {
+  content: "";
+  position: absolute;
+  top: 14px;
+  right: -7px;
+  width: 14px;
+  height: 14px;
+  transform: rotate(45deg);
+  border-top: 1px solid rgba(119, 119, 119, 0.18);
+  border-right: 1px solid rgba(119, 119, 119, 0.18);
+  background: inherit;
+}
+
 .service-list {
   display: grid;
   margin-top: 16px;
   border-top: 1px solid rgba(119, 119, 119, 0.32);
+}
+
+.service-list-table {
+  display: grid;
+  gap: 0;
+}
+
+.service-list-head {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 8px 0 0;
+  border-bottom: 1px solid rgba(119, 119, 119, 0.22);
+  color: var(--c-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.service-list-head-status {
+  display: block;
+}
+
+.service-list-head-name {
+  padding-left: 2px;
+}
+
+.service-list-head-updated {
+  padding-left: 12px;
 }
 
 .deploy-launch-card {
@@ -591,7 +657,7 @@ h1 {
 
 .service-row {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 110px;
+  grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
   min-height: 40px;
   border-bottom: 1px solid rgba(119, 119, 119, 0.32);
@@ -609,12 +675,11 @@ h1 {
 }
 
 .service-cell-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
   padding-left: 2px;
-}
-
-.service-cell-updated {
-  justify-content: flex-end;
-  padding-left: 8px;
 }
 
 .service-name-link {
@@ -642,12 +707,14 @@ h1 {
   word-break: break-all;
 }
 
-.service-updated-text {
-  font-size: 11px;
+.service-updated-inline {
+  flex: 0 0 auto;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.04em;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
   color: var(--c-primary-dark);
+  white-space: nowrap;
 }
 
 .status-icon {

@@ -32,7 +32,6 @@ type deployRequest struct {
 	Name     string `json:"name"`
 	Image    string `json:"image"`
 	Port     int    `json:"port"`
-	Scale    int    `json:"scale"`
 	MinScale int    `json:"minScale"`
 	MaxScale int    `json:"maxScale"`
 }
@@ -196,6 +195,9 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 	if req.Port == 0 {
 		req.Port = 8080
 	}
+	if req.MaxScale == 0 {
+		req.MaxScale = 1
+	}
 	if err := validateDeployRequest(req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{
 			"error": err.Error(),
@@ -346,10 +348,7 @@ func validateDeployRequest(req deployRequest) error {
 	if req.Port < 1 || req.Port > 65535 {
 		return fmt.Errorf("Portは1から65535の範囲で指定してください")
 	}
-	if req.Scale < 0 || req.MinScale < 0 || req.MaxScale < 0 {
-		return fmt.Errorf("スケール数は0以上で指定してください")
-	}
-	if req.MaxScale == 0 {
+	if req.MinScale < 0 || req.MaxScale < 1 {
 		return fmt.Errorf("最大スケール数は1以上で指定してください")
 	}
 	if req.MinScale > 0 && req.MaxScale > 0 && req.MaxScale < req.MinScale {

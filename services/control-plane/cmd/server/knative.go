@@ -200,10 +200,6 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 			},
 		},
 	}
-	if req.Scale > 0 {
-		manifest.Spec.Template.Spec.Replicas = &req.Scale
-	}
-
 	body, err := json.Marshal(manifest)
 	if err != nil {
 		return deployedService{}, err

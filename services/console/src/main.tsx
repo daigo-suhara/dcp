@@ -30,7 +30,6 @@ type DeployForm = {
   name: string;
   image: string;
   port: string;
-  scale: string;
   minScale: string;
   maxScale: string;
 };
@@ -39,7 +38,6 @@ const initialForm: DeployForm = {
   name: "",
   image: "",
   port: "",
-  scale: "0",
   minScale: "0",
   maxScale: "1"
 };
@@ -93,6 +91,20 @@ function App() {
       ? services.find((service) => service.name === route.selectedServiceName)
       : null;
   const selectedStatus = selectedService ? getServiceStatus(selectedService) : null;
+
+  useEffect(() => {
+    if (!message) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setMessage("");
+    }, 3500);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [message]);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -152,7 +164,6 @@ function App() {
           name: form.name.trim(),
           image: form.image.trim(),
           port: Number(form.port || "8080"),
-          scale: Number(form.scale || "0"),
           minScale: Number(form.minScale || "0"),
           maxScale: Number(form.maxScale || "1")
         })
@@ -166,7 +177,7 @@ function App() {
       if ("name" in data) {
         setMessage(`${data.name} を作成しました`);
       }
-      setForm((current) => ({ ...current, name: "hello-dcp", scale: "0", minScale: "0", maxScale: "1" }));
+      setForm((current) => ({ ...current, name: "hello-dcp", minScale: "0", maxScale: "1" }));
       await loadServices();
     } catch (deployError) {
       setError(deployError instanceof Error ? deployError.message : "サービスの作成に失敗しました");
@@ -213,6 +224,11 @@ function App() {
 
   return (
     <main className={`app-shell ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
+      {message ? (
+        <div className="toast toast-success" role="status" aria-live="polite">
+          {message}
+        </div>
+      ) : null}
       <header className="app-header">
         <button
           className="header-toggle"
@@ -320,19 +336,6 @@ function App() {
               </label>
 
               <label className="field">
-                <span className="field-label">スケール数</span>
-                <input
-                  className="text-input"
-                  type="number"
-                  min={0}
-                  max={20}
-                  value={form.scale}
-                  onChange={(event) => setForm((current) => ({ ...current, scale: event.target.value }))}
-                  placeholder="0"
-                />
-              </label>
-
-              <label className="field">
                 <span className="field-label">最小スケール数</span>
                 <input
                   className="text-input"
@@ -357,6 +360,7 @@ function App() {
                   placeholder="1"
                 />
               </label>
+
             </div>
 
             <div className="actions">
@@ -365,7 +369,6 @@ function App() {
               </button>
             </div>
 
-            {message ? <p className="status-banner success">{message}</p> : null}
             {error ? <p className="status-banner error">{error}</p> : null}
           </form>
         ) : (
@@ -448,35 +451,41 @@ function App() {
                   </div>
                 </div>
 
-              <div className="service-list">
-                {services.length > 0 ? (
-                  services.map((service) => {
-                    const status = getServiceStatus(service);
-                      return (
-                        <article className="service-row" key={service.name}>
-                          <span className="service-cell service-cell-status" aria-hidden="true">
-                            <span className={`status-icon ${status}`}>
-                              {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
+                <div className="service-list-table">
+                  <div className="service-list-head" aria-hidden="true">
+                    <span className="service-list-head-status" />
+                    <span className="service-list-head-name">名前</span>
+                    <span className="service-list-head-updated">更新日時</span>
+                  </div>
+
+                  <div className="service-list">
+                    {services.length > 0 ? (
+                      services.map((service) => {
+                        const status = getServiceStatus(service);
+                        return (
+                          <article className="service-row" key={service.name}>
+                            <span className="service-cell service-cell-status" aria-hidden="true">
+                              <span className={`status-icon ${status}`}>
+                                {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
+                              </span>
                             </span>
-                          </span>
-                          <span className="service-cell service-cell-name">
-                            <a className="service-name-link" href={`#services/${encodeURIComponent(service.name)}`}>
-                              <span className="service-name-text">{service.name}</span>
-                            </a>
-                          </span>
-                          <span className="service-cell service-cell-updated">
-                            <span className="service-updated-text">
-                              更新 {service.updatedAt ? formatServiceTimestamp(service.updatedAt) : "-"}
+                            <span className="service-cell service-cell-name">
+                              <a className="service-name-link" href={`#services/${encodeURIComponent(service.name)}`}>
+                                <span className="service-name-text">{service.name}</span>
+                              </a>
+                              <span className="service-updated-inline">
+                                {service.updatedAt ? formatServiceTimestamp(service.updatedAt) : "-"}
+                              </span>
                             </span>
-                          </span>
-                        </article>
-                      );
-                    })
-                  ) : (
-                    <div className="empty-state">
-                      <p>{loading ? "読み込み中..." : "まだサービスはありません。"}</p>
-                    </div>
-                  )}
+                          </article>
+                        );
+                      })
+                    ) : (
+                      <div className="empty-state">
+                        <p>{loading ? "読み込み中..." : "まだサービスはありません。"}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </section>
             )}
