@@ -393,21 +393,25 @@ function App() {
                   </div>
                 </div>
 
-                <div className="service-list">
-                  {services.length > 0 ? (
-                    services.map((service) => {
-                      const status = getServiceStatus(service);
-                      return (
-                        <article className="service-row" key={service.name}>
-                          <span className={`status-icon ${status}`} aria-hidden="true">
+              <div className="service-list">
+                {services.length > 0 ? (
+                  services.map((service) => {
+                    const status = getServiceStatus(service);
+                    return (
+                      <article className="service-row" key={service.name}>
+                        <span className="service-cell service-cell-status" aria-hidden="true">
+                          <span className={`status-icon ${status}`}>
                             {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
                           </span>
-                          <a className="service-name-link" href={`#services/${encodeURIComponent(service.name)}`}>
-                            <span className="service-name-text">{service.name}</span>
-                          </a>
-                        </article>
-                      );
-                    })
+                        </span>
+                        <span className="service-cell service-cell-name">
+                        <a className="service-name-link" href={`#services/${encodeURIComponent(service.name)}`}>
+                          <span className="service-name-text">{service.name}</span>
+                        </a>
+                        </span>
+                      </article>
+                    );
+                  })
                   ) : (
                     <div className="empty-state">
                       <p>{loading ? "Loading..." : "まだサービスはありません。"}</p>
