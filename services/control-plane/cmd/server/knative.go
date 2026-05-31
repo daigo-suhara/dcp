@@ -6,12 +6,17 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 )
+
+const userServiceManagerLabel = "dcp-control-plane"
+
+var errServiceNotFound = errors.New("service not found")
 
 type knativeServiceManager struct {
 	namespace string
@@ -73,9 +78,10 @@ func (m *knativeServiceManager) List(ctx context.Context) ([]deployedService, er
 	var payload struct {
 		Items []struct {
 			Metadata struct {
-				Name              string    `json:"name"`
-				CreationTimestamp time.Time `json:"creationTimestamp"`
-				Generation        int64     `json:"generation"`
+				Name              string            `json:"name"`
+				CreationTimestamp time.Time         `json:"creationTimestamp"`
+				Generation        int64             `json:"generation"`
+				Labels            map[string]string `json:"labels"`
 			} `json:"metadata"`
 			Spec struct {
 				Template struct {
@@ -105,6 +111,9 @@ func (m *knativeServiceManager) List(ctx context.Context) ([]deployedService, er
 
 	out := make([]deployedService, 0, len(payload.Items))
 	for _, item := range payload.Items {
+		if !isUserService(item.Metadata.Labels) {
+			continue
+		}
 		service := deployedService{
 			Name:       item.Metadata.Name,
 			Namespace:  m.namespace,
@@ -135,6 +144,10 @@ func (m *knativeServiceManager) List(ctx context.Context) ([]deployedService, er
 }
 
 func (m *knativeServiceManager) TargetURL(ctx context.Context, name string) (string, error) {
+	if _, err := m.getUserService(ctx, name); err != nil {
+		return "", err
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services/%s", m.baseURL, m.namespace, name), nil)
 	if err != nil {
 		return "", err
@@ -224,17 +237,79 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 		return deployedService{}, decodeAPIError(res)
 	}
 
+	return decodeService(res)
+}
+
+func (m *knativeServiceManager) Delete(ctx context.Context, name string) error {
+	if _, err := m.getUserService(ctx, name); err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services/%s", m.baseURL, m.namespace, name), nil)
+	if err != nil {
+		return err
+	}
+	m.authorize(req)
+
+	res, err := m.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode >= 300 {
+		return decodeAPIError(res)
+	}
+
+	return nil
+}
+
+func (m *knativeServiceManager) getUserService(ctx context.Context, name string) (deployedService, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services/%s", m.baseURL, m.namespace, name), nil)
+	if err != nil {
+		return deployedService{}, err
+	}
+	m.authorize(req)
+
+	res, err := m.client.Do(req)
+	if err != nil {
+		return deployedService{}, err
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode == http.StatusNotFound {
+		return deployedService{}, errServiceNotFound
+	}
+	if res.StatusCode >= 300 {
+		return deployedService{}, decodeAPIError(res)
+	}
+
+	service, err := decodeService(res)
+	if err != nil {
+		return deployedService{}, err
+	}
+	if service.Name == "" {
+		return deployedService{}, errServiceNotFound
+	}
+	return service, nil
+}
+
+func isUserService(labels map[string]string) bool {
+	return labels["app.kubernetes.io/managed-by"] == userServiceManagerLabel
+}
+
+func decodeService(res *http.Response) (deployedService, error) {
 	var payload struct {
 		Metadata struct {
-			Name              string    `json:"name"`
-			CreationTimestamp time.Time `json:"creationTimestamp"`
-			Generation        int64     `json:"generation"`
-			Namespace         string    `json:"namespace"`
+			Name              string            `json:"name"`
+			CreationTimestamp time.Time         `json:"creationTimestamp"`
+			Generation        int64             `json:"generation"`
+			Namespace         string            `json:"namespace"`
+			Labels            map[string]string `json:"labels"`
 		} `json:"metadata"`
 		Spec struct {
 			Template struct {
 				Spec struct {
-					Replicas   *int `json:"replicas,omitempty"`
 					Containers []struct {
 						Image string `json:"image"`
 					} `json:"containers"`
@@ -242,7 +317,6 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 			} `json:"template"`
 		} `json:"spec"`
 		Status struct {
-			URL        string `json:"url"`
 			Conditions []struct {
 				Type               string    `json:"type"`
 				Status             string    `json:"status"`
@@ -254,6 +328,9 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 
 	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 		return deployedService{}, err
+	}
+	if !isUserService(payload.Metadata.Labels) {
+		return deployedService{}, errServiceNotFound
 	}
 
 	service := deployedService{
@@ -281,26 +358,6 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 	}
 
 	return service, nil
-}
-
-func (m *knativeServiceManager) Delete(ctx context.Context, name string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services/%s", m.baseURL, m.namespace, name), nil)
-	if err != nil {
-		return err
-	}
-	m.authorize(req)
-
-	res, err := m.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 300 {
-		return decodeAPIError(res)
-	}
-
-	return nil
 }
 
 func publicServiceURL(name string) string {

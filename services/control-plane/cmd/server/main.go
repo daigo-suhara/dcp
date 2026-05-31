@@ -234,6 +234,10 @@ func (a *apiServer) deleteService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := a.services.Delete(r.Context(), name); err != nil {
+		if errors.Is(err, errServiceNotFound) {
+			http.NotFound(w, r)
+			return
+		}
 		a.logger.Error("delete service failed", "error", err, "name", name)
 		writeJSON(w, http.StatusBadGateway, map[string]string{
 			"error": "サービスの削除に失敗しました",
