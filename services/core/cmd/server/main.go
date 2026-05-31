@@ -298,6 +298,10 @@ func (a *apiServer) createProject(w http.ResponseWriter, r *http.Request) {
 	project, err := a.projects.Create(r.Context(), userID, req.Name)
 	if err != nil {
 		a.logger.Error("create project failed", "error", err, "user", userID)
+		if errors.Is(err, errProjectAlreadyExists) {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "同じ名前のプロジェクトは作成できません"})
+			return
+		}
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "プロジェクトの作成に失敗しました"})
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -17,6 +18,8 @@ import (
 const projectsConfigMapName = "dcp-projects"
 
 var uuidGenerator = uuid.NewString
+
+var errProjectAlreadyExists = errors.New("project already exists")
 
 type memoryProjectManager struct {
 	mu       sync.Mutex
@@ -39,6 +42,9 @@ func (m *memoryProjectManager) Create(_ context.Context, userID string, name str
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
+	if projectNameExists(m.projects, userID, name) {
+		return project{}, errProjectAlreadyExists
+	}
 	p := newProject(userID, name, m.projects)
 	m.projects = append(m.projects, p)
 	return p, nil
@@ -127,6 +133,9 @@ func (m *kubeProjectManager) Create(ctx context.Context, userID string, name str
 	projects, resourceVersion, err := m.load(ctx)
 	if err != nil {
 		return project{}, err
+	}
+	if projectNameExists(projects, userID, name) {
+		return project{}, errProjectAlreadyExists
 	}
 	p := newProject(userID, name, projects)
 	projects = append(projects, p)
@@ -305,6 +314,16 @@ func filterProjectsByOwner(projects []project, userID string) []project {
 		}
 	}
 	return out
+}
+
+func projectNameExists(projects []project, userID string, name string) bool {
+	normalized := strings.TrimSpace(name)
+	for _, p := range projects {
+		if p.Owner == userID && p.Name == normalized {
+			return true
+		}
+	}
+	return false
 }
 
 func projectExists(projects []project, id string) bool {

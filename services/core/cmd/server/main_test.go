@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -227,6 +229,46 @@ func TestAuthFlow(t *testing.T) {
 	}
 	if got.ID != "alice-id" || got.Username != "alice" {
 		t.Fatalf("unexpected current user: %+v", got)
+	}
+}
+
+func TestCreateProjectRejectsDuplicateName(t *testing.T) {
+	withTestUUID(t)
+	auth := testAuth()
+	api := &apiServer{
+		logger:    slog.New(slog.NewTextHandler(io.Discard, nil)),
+		auth:      auth,
+		projects:  newMemoryProjectManager(),
+		namespace: "dcp-system",
+	}
+
+	body := `{"name":"alpha"}`
+	firstReq := httptest.NewRequest(http.MethodPost, "http://172.16.100.11:8080/api/v1/projects", strings.NewReader(body))
+	firstReq.AddCookie(testSessionCookie(t, auth, authUser{ID: "default-user", Username: "default-user"}))
+	firstRec := httptest.NewRecorder()
+
+	api.createProject(firstRec, firstReq)
+
+	if firstRec.Code != http.StatusCreated {
+		t.Fatalf("expected status %d, got %d", http.StatusCreated, firstRec.Code)
+	}
+
+	secondReq := httptest.NewRequest(http.MethodPost, "http://172.16.100.11:8080/api/v1/projects", strings.NewReader(body))
+	secondReq.AddCookie(testSessionCookie(t, auth, authUser{ID: "default-user", Username: "default-user"}))
+	secondRec := httptest.NewRecorder()
+
+	api.createProject(secondRec, secondReq)
+
+	if secondRec.Code != http.StatusConflict {
+		t.Fatalf("expected status %d, got %d", http.StatusConflict, secondRec.Code)
+	}
+
+	var got map[string]string
+	if err := json.NewDecoder(secondRec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if got["error"] != "同じ名前のプロジェクトは作成できません" {
+		t.Fatalf("unexpected error response: %+v", got)
 	}
 }
 
