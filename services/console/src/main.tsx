@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import {
+  HiOutlineCloud,
+  HiOutlineCube,
+  HiOutlineGlobeAlt
+} from "react-icons/hi2";
+import { HiOutlineServerStack } from "react-icons/hi2";
+import { SiGithub, SiDocker } from "react-icons/si";
 import "./styles.css";
 
 type PlatformResponse = {
@@ -32,7 +39,7 @@ const initialForm: DeployForm = {
 
 const navItems = [
   { id: "home", label: "コンテナ" },
-  { id: "deploy", label: "VM" },
+  { id: "deploy", label: "仮想マシン" },
   { id: "services", label: "ネットワーク" }
 ] as const;
 
@@ -66,6 +73,7 @@ function parseRoute(hash: string): RouteState {
 function App() {
   const [services, setServices] = useState<DeployedService[]>([]);
   const [route, setRoute] = useState<RouteState>(() => parseRoute(window.location.hash));
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingName, setDeletingName] = useState("");
@@ -73,7 +81,6 @@ function App() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
-  const selectedService = services.find((service) => service.name === route.selectedServiceName) ?? null;
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -81,6 +88,10 @@ function App() {
     };
 
     window.addEventListener("hashchange", handleHashChange);
+    const media = window.matchMedia("(max-width: 760px)");
+    const syncSidebar = () => setSidebarOpen(!media.matches);
+    syncSidebar();
+    media.addEventListener("change", syncSidebar);
     void loadServices();
     const timer = window.setInterval(() => {
       void loadServices({ quiet: true });
@@ -89,6 +100,7 @@ function App() {
     return () => {
       window.clearInterval(timer);
       window.removeEventListener("hashchange", handleHashChange);
+      media.removeEventListener("change", syncSidebar);
     };
   }, []);
 
@@ -190,19 +202,55 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar" aria-label="navigation">
-        <div className="sidebar-brand">dcp</div>
+    <main className={`app-shell ${sidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}>
+      <header className="app-header">
+        <button
+          className="header-toggle"
+          type="button"
+          aria-expanded={sidebarOpen}
+          aria-controls="sidebar-navigation"
+          onClick={() => setSidebarOpen((current) => !current)}
+        >
+          <span className="header-toggle-icon" aria-hidden="true">
+            <HamburgerIcon />
+          </span>
+        </button>
+        <div className="brand-slot">
+          <BrandLogo />
+        </div>
+      </header>
+      {sidebarOpen ? <div className="sidebar-backdrop" role="presentation" onClick={() => setSidebarOpen(false)} /> : null}
+      <aside className={`sidebar ${sidebarOpen ? "open" : ""}`} aria-label="navigation">
+        <div className="sidebar-top">
+          <div className="brand-slot">
+            <BrandLogo />
+          </div>
+        </div>
+        <button
+          className="sidebar-close-button"
+          type="button"
+          aria-label="サイドバーを閉じる"
+          onClick={() => setSidebarOpen(false)}
+        >
+          <span className="sidebar-close-icon" aria-hidden="true">
+            <CloseIcon />
+          </span>
+        </button>
         <div className="sidebar-divider" aria-hidden="true" />
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" id="sidebar-navigation">
           {navItems.map((item) => (
             <a
               key={item.id}
               className={`nav-item ${route.section === item.id ? "active" : ""}`}
               href={`#${item.id}`}
+              onClick={() => {
+                if (window.matchMedia("(max-width: 760px)").matches) {
+                  setSidebarOpen(false);
+                }
+              }}
             >
               <span className="nav-icon" aria-hidden="true">
-                {item.id === "home" ? <ContainerIcon /> : item.id === "deploy" ? <VmIcon /> : <NetworkIcon />}
+                {item.id === "home" ? <HiOutlineCube /> : item.id === "deploy" ? <HiOutlineServerStack /> : <HiOutlineGlobeAlt />}
               </span>
               <span className="nav-copy">
                 <strong>{item.label}</strong>
@@ -213,13 +261,16 @@ function App() {
       </aside>
 
       <section className="content">
-        <section className="dashboard-grid" aria-label="deployment-console">
+        {route.section === "deploy" ? (
           <form className="deploy-card" id="deploy" onSubmit={handleSubmit}>
             <div className="panel-header">
               <div>
                 <p className="panel-kicker">サービスの作成</p>
                 <h2>コンテナを作成</h2>
               </div>
+              <a className="detail-back" href="#home">
+                一覧に戻る
+              </a>
             </div>
 
             <div className="field-grid">
@@ -268,74 +319,16 @@ function App() {
             {message ? <p className="status-banner success">{message}</p> : null}
             {error ? <p className="status-banner error">{error}</p> : null}
           </form>
-
-          <section className="service-card panel" id="services">
-            <div className="panel-header">
-              <div>
-                <p className="panel-kicker">サービス</p>
-                <h2>デプロイ済みサービス</h2>
-              </div>
-              {selectedService ? (
-                <a className="detail-back" href="#services">
-                  一覧に戻る
-                </a>
-              ) : null}
-            </div>
-
-            {selectedService ? (
-              <section className="service-detail" aria-label={`${selectedService.name} details`}>
-                <div className="service-detail-head">
-                  <div className="service-detail-title">
-                    <span className={`status-icon ${getServiceStatus(selectedService)}`} aria-hidden="true">
-                      {getServiceStatus(selectedService) === "ready" ? (
-                        <CheckIcon />
-                      ) : getServiceStatus(selectedService) === "loading" ? (
-                        <LoadingIcon />
-                      ) : (
-                        <ErrorIcon />
-                      )}
-                    </span>
-                    <div>
-                      <p className="panel-kicker">サービス詳細</p>
-                      <h3>{selectedService.name}</h3>
-                    </div>
-                  </div>
-                  <button
-                    className="pill danger button"
-                    type="button"
-                    onClick={() => requestDelete(selectedService.name)}
-                    disabled={deletingName === selectedService.name}
-                  >
-                    {deletingName === selectedService.name ? "削除中..." : "削除"}
-                  </button>
+        ) : (
+          <section className="service-rail" aria-label="container-services">
+            <section className="service-card panel service-list-card" id="services">
+              <div className="panel-header">
+                <div>
+                  <p className="panel-kicker">サービス</p>
+                  <h2>デプロイ済みサービス</h2>
                 </div>
+              </div>
 
-                <dl className="detail-grid">
-                  <div>
-                    <dt>状態</dt>
-                    <dd>{formatServiceStatus(selectedService)}</dd>
-                  </div>
-                  <div>
-                    <dt>コンテナイメージ</dt>
-                    <dd>{selectedService.image}</dd>
-                  </div>
-                  <div>
-                    <dt>作成時刻</dt>
-                    <dd>{selectedService.createdAt ?? "just now"}</dd>
-                  </div>
-                  <div>
-                    <dt>URL</dt>
-                    <dd>{selectedService.url ? <a href={selectedService.url}>{selectedService.url}</a> : "none"}</dd>
-                  </div>
-                  {selectedService.reason ? (
-                    <div>
-                      <dt>理由</dt>
-                      <dd>{selectedService.reason}</dd>
-                    </div>
-                  ) : null}
-                </dl>
-              </section>
-            ) : (
               <div className="service-list">
                 {services.length > 0 ? (
                   services.map((service) => {
@@ -345,9 +338,7 @@ function App() {
                         <span className={`status-icon ${status}`} aria-hidden="true">
                           {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
                         </span>
-                        <a className="service-name-link" href={`#services/${encodeURIComponent(service.name)}`}>
-                          {service.name}
-                        </a>
+                        <span className="service-name-text">{service.name}</span>
                       </article>
                     );
                   })
@@ -357,9 +348,34 @@ function App() {
                   </div>
                 )}
               </div>
-            )}
+            </section>
+
+            <section className="service-card panel deploy-panel" aria-label="サービスのデプロイ">
+              <div className="panel-header">
+                <div>
+                  <p className="panel-kicker">作成</p>
+                  <h2>サービスのデプロイ</h2>
+                </div>
+              </div>
+
+              <div className="deploy-panel-grid">
+                <a className="deploy-launch-card" href="#deploy" aria-label="コンテナのデプロイ">
+                  <span className="deploy-launch-icon" aria-hidden="true">
+                    <SiDocker />
+                  </span>
+                  <span className="deploy-launch-label">コンテナのデプロイ</span>
+                </a>
+
+                <a className="deploy-launch-card deploy-launch-secondary" href="#services" aria-label="リポジトリの接続">
+                  <span className="deploy-launch-icon deploy-launch-glyph" aria-hidden="true">
+                    <SiGithub />
+                  </span>
+                  <span className="deploy-launch-label">リポジトリの接続</span>
+                </a>
+              </div>
+            </section>
           </section>
-        </section>
+        )}
       </section>
 
       {pendingDeleteName ? (
@@ -422,37 +438,21 @@ function formatServiceStatus(service: DeployedService) {
   return service.reason ?? "Pending";
 }
 
-function ContainerIcon() {
+function HamburgerIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="4" y="6" width="16" height="12" rx="3" />
-      <path d="M8 6v12" />
-      <path d="M16 6v12" />
+      <path d="M4 7h16" />
       <path d="M4 12h16" />
+      <path d="M4 17h16" />
     </svg>
   );
 }
 
-function VmIcon() {
+function CloseIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="5" y="5" width="14" height="14" rx="3" />
-      <path d="M8 9h8" />
-      <path d="M8 12h5" />
-      <path d="M8 15h6" />
-    </svg>
-  );
-}
-
-function NetworkIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 5v14" />
-      <path d="M6 9h12" />
-      <path d="M7.5 15.5 12 20l4.5-4.5" />
-      <circle cx="12" cy="5" r="1.5" />
-      <circle cx="6" cy="9" r="1.5" />
-      <circle cx="18" cy="9" r="1.5" />
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
     </svg>
   );
 }
@@ -480,6 +480,15 @@ function LoadingIcon() {
       <circle cx="12" cy="12" r="8" />
       <path d="M12 4a8 8 0 0 1 8 8" />
     </svg>
+  );
+}
+
+function BrandLogo() {
+  return (
+    <span className="brand-logo" aria-hidden="true">
+      <HiOutlineCloud />
+      <span className="brand-logo-text">D Cloud</span>
+    </span>
   );
 }
 
