@@ -476,7 +476,9 @@ function App() {
                                 <span className="service-name-text">{service.name}</span>
                               </a>
                               <span className="service-updated-inline">
-                                {service.updatedAt ? formatServiceTimestamp(service.updatedAt) : "-"}
+                                {service.updatedAt || service.createdAt
+                                  ? formatServiceTimestamp(service.updatedAt || service.createdAt || "")
+                                  : "-"}
                               </span>
                             </span>
                           </article>
