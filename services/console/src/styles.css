@@ -108,7 +108,15 @@ a {
 }
 
 .header-logout {
+  margin-left: 0;
+}
+
+.header-project-switcher {
   margin-left: auto;
+}
+
+.header-project-select {
+  max-width: 180px;
 }
 
 .project-select,

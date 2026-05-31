@@ -498,6 +498,21 @@ function App() {
         <div className="brand-slot">
           <BrandLogo />
         </div>
+        <div className="project-switcher header-project-switcher" aria-label="project-switcher">
+          <select
+            className="project-select header-project-select"
+            value={activeProjectId}
+            onChange={(event) => handleProjectSelect(event.target.value)}
+            disabled={projects.length === 0}
+            aria-label="プロジェクトを切り替え"
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <button className="project-create-button logout-button header-logout" type="button" onClick={startLogout}>
           ログアウト
         </button>
