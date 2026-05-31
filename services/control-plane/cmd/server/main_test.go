@@ -106,7 +106,7 @@ func TestDeployService(t *testing.T) {
 		namespace: "dcp-system",
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "http://172.16.100.11:8080/api/v1/services", strings.NewReader(`{"name":"hello-dcp","image":"ghcr.io/example/hello-dcp:latest","port":8080,"scale":2}`))
+	req := httptest.NewRequest(http.MethodPost, "http://172.16.100.11:8080/api/v1/services", strings.NewReader(`{"name":"hello-dcp","image":"ghcr.io/example/hello-dcp:latest","port":8080,"scale":2,"minScale":1,"maxScale":5}`))
 	rec := httptest.NewRecorder()
 
 	api.deployService(rec, req)
@@ -133,6 +133,9 @@ func TestDeployService(t *testing.T) {
 	}
 	if len(manager.deployed) != 1 || manager.deployed[0].Scale != 2 {
 		t.Fatalf("expected scale 2, got %+v", manager.deployed)
+	}
+	if manager.deployed[0].MinScale != 1 || manager.deployed[0].MaxScale != 5 {
+		t.Fatalf("expected minScale 1 and maxScale 5, got %+v", manager.deployed[0])
 	}
 }
 

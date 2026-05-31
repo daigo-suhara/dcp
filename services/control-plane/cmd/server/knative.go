@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -181,6 +182,15 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 		"app.kubernetes.io/instance":  "dcp",
 		"app.kubernetes.io/component": "cloudrun",
 	}
+	if req.MinScale > 0 || req.MaxScale > 0 {
+		manifest.Spec.Template.Metadata.Annotations = map[string]string{}
+		if req.MinScale > 0 {
+			manifest.Spec.Template.Metadata.Annotations["autoscaling.knative.dev/minScale"] = strconv.Itoa(req.MinScale)
+		}
+		if req.MaxScale > 0 {
+			manifest.Spec.Template.Metadata.Annotations["autoscaling.knative.dev/maxScale"] = strconv.Itoa(req.MaxScale)
+		}
+	}
 	manifest.Spec.Template.Spec.Containers = []knativeContainer{
 		{
 			Name:  req.Name,
@@ -228,7 +238,7 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 		Spec struct {
 			Template struct {
 				Spec struct {
-					Replicas *int `json:"replicas,omitempty"`
+					Replicas   *int `json:"replicas,omitempty"`
 					Containers []struct {
 						Image string `json:"image"`
 					} `json:"containers"`
@@ -331,16 +341,17 @@ type knativeServiceManifest struct {
 		Labels    map[string]string `json:"labels,omitempty"`
 	} `json:"metadata"`
 	Spec struct {
-			Template struct {
-				Metadata struct {
-					Labels map[string]string `json:"labels,omitempty"`
-				} `json:"metadata"`
-				Spec struct {
-					Replicas *int `json:"replicas,omitempty"`
-					Containers []knativeContainer `json:"containers"`
-				} `json:"spec"`
-			} `json:"template"`
-		} `json:"spec"`
+		Template struct {
+			Metadata struct {
+				Labels      map[string]string `json:"labels,omitempty"`
+				Annotations map[string]string `json:"annotations,omitempty"`
+			} `json:"metadata"`
+			Spec struct {
+				Replicas   *int               `json:"replicas,omitempty"`
+				Containers []knativeContainer `json:"containers"`
+			} `json:"spec"`
+		} `json:"template"`
+	} `json:"spec"`
 }
 
 type knativeContainer struct {

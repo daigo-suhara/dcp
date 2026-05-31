@@ -29,10 +29,12 @@ type platformResponse struct {
 }
 
 type deployRequest struct {
-	Name  string `json:"name"`
-	Image string `json:"image"`
-	Port  int    `json:"port"`
-	Scale int    `json:"scale"`
+	Name     string `json:"name"`
+	Image    string `json:"image"`
+	Port     int    `json:"port"`
+	Scale    int    `json:"scale"`
+	MinScale int    `json:"minScale"`
+	MaxScale int    `json:"maxScale"`
 }
 
 type deployedService struct {
@@ -153,7 +155,7 @@ func platform(w http.ResponseWriter, r *http.Request) {
 func (a *apiServer) listServices(w http.ResponseWriter, r *http.Request) {
 	if a.services == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"error": "service manager is unavailable",
+			"error": "サービス管理機能を利用できません",
 		})
 		return
 	}
@@ -162,7 +164,7 @@ func (a *apiServer) listServices(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		a.logger.Error("list services failed", "error", err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{
-			"error": err.Error(),
+			"error": "サービス一覧の取得に失敗しました",
 		})
 		return
 	}
@@ -177,7 +179,7 @@ func (a *apiServer) listServices(w http.ResponseWriter, r *http.Request) {
 func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 	if a.services == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"error": "service manager is unavailable",
+			"error": "サービス管理機能を利用できません",
 		})
 		return
 	}
@@ -185,7 +187,7 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 	var req deployRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{
-			"error": "invalid JSON body",
+			"error": "リクエスト本文のJSONが不正です",
 		})
 		return
 	}
@@ -205,7 +207,7 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		a.logger.Error("deploy service failed", "error", err, "name", req.Name)
 		writeJSON(w, http.StatusBadGateway, map[string]string{
-			"error": err.Error(),
+			"error": "サービスの作成に失敗しました",
 		})
 		return
 	}
@@ -217,7 +219,7 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 func (a *apiServer) deleteService(w http.ResponseWriter, r *http.Request) {
 	if a.services == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"error": "service manager is unavailable",
+			"error": "サービス管理機能を利用できません",
 		})
 		return
 	}
@@ -232,7 +234,7 @@ func (a *apiServer) deleteService(w http.ResponseWriter, r *http.Request) {
 	if err := a.services.Delete(r.Context(), name); err != nil {
 		a.logger.Error("delete service failed", "error", err, "name", name)
 		writeJSON(w, http.StatusBadGateway, map[string]string{
-			"error": err.Error(),
+			"error": "サービスの削除に失敗しました",
 		})
 		return
 	}
@@ -242,7 +244,7 @@ func (a *apiServer) deleteService(w http.ResponseWriter, r *http.Request) {
 
 func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 	if a.services == nil {
-		http.Error(w, "service manager is unavailable", http.StatusServiceUnavailable)
+		http.Error(w, "サービス管理機能を利用できません", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -264,14 +266,14 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 	targetURL, err := a.services.TargetURL(r.Context(), name)
 	if err != nil {
 		a.logger.Error("resolve service target failed", "error", err, "name", name)
-		http.Error(w, "service not found", http.StatusNotFound)
+		http.Error(w, "サービスが見つかりません", http.StatusNotFound)
 		return
 	}
 
 	target, err := url.Parse(targetURL)
 	if err != nil {
 		a.logger.Error("invalid service target url", "error", err, "name", name, "target", targetURL)
-		http.Error(w, "invalid backend url", http.StatusBadGateway)
+		http.Error(w, "バックエンドURLが不正です", http.StatusBadGateway)
 		return
 	}
 
@@ -291,7 +293,7 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 	}
 	proxy.ErrorHandler = func(_ http.ResponseWriter, _ *http.Request, proxyErr error) {
 		a.logger.Error("proxy service failed", "error", proxyErr, "name", name)
-		http.Error(w, "upstream unavailable", http.StatusBadGateway)
+		http.Error(w, "接続先サービスを利用できません", http.StatusBadGateway)
 	}
 	proxy.ServeHTTP(w, r)
 }
@@ -333,16 +335,25 @@ func singleJoiningSlash(a, b string) string {
 
 func validateDeployRequest(req deployRequest) error {
 	if req.Name == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("サービス名は必須です")
 	}
 	if req.Image == "" {
-		return fmt.Errorf("image is required")
+		return fmt.Errorf("コンテナイメージのURLは必須です")
 	}
 	if !isDNSLabel(req.Name) {
-		return fmt.Errorf("name must be a DNS label")
+		return fmt.Errorf("サービス名はDNSラベル形式で指定してください")
 	}
 	if req.Port < 1 || req.Port > 65535 {
-		return fmt.Errorf("port must be between 1 and 65535")
+		return fmt.Errorf("Portは1から65535の範囲で指定してください")
+	}
+	if req.Scale < 0 || req.MinScale < 0 || req.MaxScale < 0 {
+		return fmt.Errorf("スケール数は0以上で指定してください")
+	}
+	if req.MaxScale == 0 {
+		return fmt.Errorf("最大スケール数は1以上で指定してください")
+	}
+	if req.MinScale > 0 && req.MaxScale > 0 && req.MaxScale < req.MinScale {
+		return fmt.Errorf("最大スケール数は最小スケール数以上で指定してください")
 	}
 	return nil
 }

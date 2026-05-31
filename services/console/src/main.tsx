@@ -31,13 +31,17 @@ type DeployForm = {
   image: string;
   port: string;
   scale: string;
+  minScale: string;
+  maxScale: string;
 };
 
 const initialForm: DeployForm = {
   name: "",
   image: "",
   port: "",
-  scale: "0"
+  scale: "0",
+  minScale: "0",
+  maxScale: "1"
 };
 
 const navItems = [
@@ -116,14 +120,14 @@ function App() {
       const response = await fetch("/api/v1/services");
       const data = (await response.json()) as PlatformResponse | { error?: string };
       if (!response.ok) {
-        throw new Error("error" in data && data.error ? data.error : "failed to load services");
+        throw new Error("error" in data && data.error ? data.error : "サービス一覧を読み込めませんでした");
       }
       if ("namespace" in data) {
         setServices(data.services ?? []);
       }
     } catch (loadError) {
       if (!options?.quiet) {
-        setError(loadError instanceof Error ? loadError.message : "failed to load services");
+        setError(loadError instanceof Error ? loadError.message : "サービス一覧を読み込めませんでした");
       }
     } finally {
       if (!options?.quiet) {
@@ -144,26 +148,28 @@ function App() {
         headers: {
           "Content-Type": "application/json"
         },
-          body: JSON.stringify({
-            name: form.name.trim(),
-            image: form.image.trim(),
-            port: Number(form.port || "8080"),
-            scale: Number(form.scale || "0")
-          })
-        });
+        body: JSON.stringify({
+          name: form.name.trim(),
+          image: form.image.trim(),
+          port: Number(form.port || "8080"),
+          scale: Number(form.scale || "0"),
+          minScale: Number(form.minScale || "0"),
+          maxScale: Number(form.maxScale || "1")
+        })
+      });
 
       const data = (await response.json()) as DeployedService | { error?: string };
       if (!response.ok) {
-        throw new Error("error" in data && data.error ? data.error : "failed to deploy service");
+        throw new Error("error" in data && data.error ? data.error : "サービスの作成に失敗しました");
       }
 
       if ("name" in data) {
         setMessage(`${data.name} を作成しました`);
       }
-      setForm((current) => ({ ...current, name: "hello-dcp", scale: "0" }));
+      setForm((current) => ({ ...current, name: "hello-dcp", scale: "0", minScale: "0", maxScale: "1" }));
       await loadServices();
     } catch (deployError) {
-      setError(deployError instanceof Error ? deployError.message : "failed to deploy service");
+      setError(deployError instanceof Error ? deployError.message : "サービスの作成に失敗しました");
     } finally {
       setSubmitting(false);
     }
@@ -190,7 +196,7 @@ function App() {
 
       if (!response.ok && response.status !== 204) {
         const data = (await response.json()) as { error?: string };
-        throw new Error(data.error ?? "failed to delete service");
+        throw new Error(data.error ?? "サービスの削除に失敗しました");
       }
 
       setMessage(`${name} を削除しました`);
@@ -199,7 +205,7 @@ function App() {
       }
       await loadServices();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "failed to delete service");
+      setError(deleteError instanceof Error ? deleteError.message : "サービスの削除に失敗しました");
     } finally {
       setDeletingName("");
     }
@@ -325,11 +331,37 @@ function App() {
                   placeholder="0"
                 />
               </label>
+
+              <label className="field">
+                <span className="field-label">最小スケール数</span>
+                <input
+                  className="text-input"
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={form.minScale}
+                  onChange={(event) => setForm((current) => ({ ...current, minScale: event.target.value }))}
+                  placeholder="0"
+                />
+              </label>
+
+              <label className="field">
+                <span className="field-label">最大スケール数</span>
+                <input
+                  className="text-input"
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={form.maxScale}
+                  onChange={(event) => setForm((current) => ({ ...current, maxScale: event.target.value }))}
+                  placeholder="1"
+                />
+              </label>
             </div>
 
             <div className="actions">
               <button className="pill primary button" type="submit" disabled={submitting}>
-                {submitting ? "Deploying..." : "作成"}
+                {submitting ? "作成中..." : "作成"}
               </button>
             </div>
 
@@ -442,7 +474,7 @@ function App() {
                     })
                   ) : (
                     <div className="empty-state">
-                      <p>{loading ? "Loading..." : "まだサービスはありません。"}</p>
+                      <p>{loading ? "読み込み中..." : "まだサービスはありません。"}</p>
                     </div>
                   )}
                 </div>
@@ -531,10 +563,29 @@ function getServiceStatus(service: DeployedService) {
 
 function formatServiceStatus(service: DeployedService) {
   if (service.ready) {
-    return "Ready";
+    return "正常";
   }
 
-  return service.reason ?? "Pending";
+  return formatServiceReason(service.reason);
+}
+
+function formatServiceReason(reason?: string) {
+  switch (reason) {
+    case "RevisionMissing":
+      return "リビジョンを準備中です";
+    case "RevisionFailed":
+      return "リビジョンの作成に失敗しました";
+    case "ContainerMissing":
+      return "コンテナが見つかりません";
+    case "ContainerCreating":
+      return "コンテナを作成中です";
+    case "ImagePullBackOff":
+      return "イメージの取得に失敗しました";
+    case "ErrImagePull":
+      return "イメージ取得エラーです";
+    default:
+      return "処理中です";
+  }
 }
 
 function formatServiceTimestamp(value: string) {
