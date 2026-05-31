@@ -81,6 +81,11 @@ function App() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
+  const selectedService =
+    route.section === "services" && route.selectedServiceName
+      ? services.find((service) => service.name === route.selectedServiceName)
+      : null;
+  const selectedStatus = selectedService ? getServiceStatus(selectedService) : null;
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -88,10 +93,6 @@ function App() {
     };
 
     window.addEventListener("hashchange", handleHashChange);
-    const media = window.matchMedia("(max-width: 760px)");
-    const syncSidebar = () => setSidebarOpen(!media.matches);
-    syncSidebar();
-    media.addEventListener("change", syncSidebar);
     void loadServices();
     const timer = window.setInterval(() => {
       void loadServices({ quiet: true });
@@ -100,7 +101,6 @@ function App() {
     return () => {
       window.clearInterval(timer);
       window.removeEventListener("hashchange", handleHashChange);
-      media.removeEventListener("change", syncSidebar);
     };
   }, []);
 
@@ -321,34 +321,101 @@ function App() {
           </form>
         ) : (
           <section className="service-rail" aria-label="container-services">
-            <section className="service-card panel service-list-card" id="services">
-              <div className="panel-header">
-                <div>
-                  <p className="panel-kicker">サービス</p>
-                  <h2>デプロイ済みサービス</h2>
-                </div>
-              </div>
-
-              <div className="service-list">
-                {services.length > 0 ? (
-                  services.map((service) => {
-                    const status = getServiceStatus(service);
-                    return (
-                      <article className="service-row" key={service.name}>
-                        <span className={`status-icon ${status}`} aria-hidden="true">
-                          {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
+            {route.selectedServiceName ? (
+              <section className="service-card panel service-detail-card" aria-label="service-detail">
+                {selectedService ? (
+                  <>
+                    <div className="service-detail-head">
+                      <div className="service-detail-title">
+                        <span className={`status-icon ${selectedStatus}`} aria-hidden="true">
+                          {selectedStatus === "ready" ? (
+                            <CheckIcon />
+                          ) : selectedStatus === "loading" ? (
+                            <LoadingIcon />
+                          ) : (
+                            <ErrorIcon />
+                          )}
                         </span>
-                        <span className="service-name-text">{service.name}</span>
-                      </article>
-                    );
-                  })
+                        <h3>{selectedService.name}</h3>
+                      </div>
+                      <a className="detail-back" href="#services">
+                        一覧に戻る
+                      </a>
+                    </div>
+
+                    <div className="detail-grid">
+                      <div>
+                        <dt>状態</dt>
+                        <dd>{formatServiceStatus(selectedService)}</dd>
+                      </div>
+                      <div>
+                        <dt>イメージ</dt>
+                        <dd>{selectedService.image}</dd>
+                      </div>
+                      <div>
+                        <dt>URL</dt>
+                        <dd>
+                          {selectedService.url ? (
+                            <a href={selectedService.url} target="_blank" rel="noreferrer">
+                              {selectedService.url}
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>作成時刻</dt>
+                        <dd>{selectedService.createdAt ?? "-"}</dd>
+                      </div>
+                    </div>
+                  </>
                 ) : (
-                  <div className="empty-state">
-                    <p>{loading ? "Loading..." : "まだサービスはありません。"}</p>
-                  </div>
+                  <>
+                    <div className="service-detail-head">
+                      <div className="service-detail-title">
+                        <h3>サービスが見つかりません</h3>
+                      </div>
+                      <a className="detail-back" href="#services">
+                        一覧に戻る
+                      </a>
+                    </div>
+                    <p className="service-detail-empty">削除されたか、まだ同期されていません。</p>
+                  </>
                 )}
-              </div>
-            </section>
+              </section>
+            ) : (
+              <section className="service-card panel service-list-card" id="services">
+                <div className="panel-header">
+                  <div>
+                    <p className="panel-kicker">サービス</p>
+                    <h2>デプロイ済みサービス</h2>
+                  </div>
+                </div>
+
+                <div className="service-list">
+                  {services.length > 0 ? (
+                    services.map((service) => {
+                      const status = getServiceStatus(service);
+                      return (
+                        <article className="service-row" key={service.name}>
+                          <span className={`status-icon ${status}`} aria-hidden="true">
+                            {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
+                          </span>
+                          <a className="service-name-link" href={`#services/${encodeURIComponent(service.name)}`}>
+                            <span className="service-name-text">{service.name}</span>
+                          </a>
+                        </article>
+                      );
+                    })
+                  ) : (
+                    <div className="empty-state">
+                      <p>{loading ? "Loading..." : "まだサービスはありません。"}</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
             <section className="service-card panel deploy-panel" aria-label="サービスのデプロイ">
               <div className="panel-header">
