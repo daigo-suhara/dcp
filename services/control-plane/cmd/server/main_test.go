@@ -54,7 +54,17 @@ func TestPlatform(t *testing.T) {
 }
 
 func TestListServices(t *testing.T) {
+	auth := newMemoryAuthManager()
+	registered, err := auth.Register(context.Background(), "default-user", "secret")
+	if err != nil {
+		t.Fatalf("register user: %v", err)
+	}
+	session, err := auth.Login(context.Background(), registered.Username, "secret")
+	if err != nil {
+		t.Fatalf("login user: %v", err)
+	}
 	api := &apiServer{
+		auth: auth,
 		services: &fakeServiceManager{
 			services: []deployedService{
 				{
@@ -72,6 +82,7 @@ func TestListServices(t *testing.T) {
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "http://172.16.100.11:8080/api/v1/services", nil)
+	req.AddCookie(authCookie(session.Token, false))
 	rec := httptest.NewRecorder()
 
 	api.listServices(rec, req)
@@ -102,14 +113,25 @@ func TestListServices(t *testing.T) {
 }
 
 func TestDeployService(t *testing.T) {
+	auth := newMemoryAuthManager()
+	registered, err := auth.Register(context.Background(), "default-user", "secret")
+	if err != nil {
+		t.Fatalf("register user: %v", err)
+	}
+	session, err := auth.Login(context.Background(), registered.Username, "secret")
+	if err != nil {
+		t.Fatalf("login user: %v", err)
+	}
 	manager := &fakeServiceManager{}
 	api := &apiServer{
+		auth:      auth,
 		services:  manager,
 		projects:  newMemoryProjectManager(),
 		namespace: "dcp-system",
 	}
 
 	req := httptest.NewRequest(http.MethodPost, "http://172.16.100.11:8080/api/v1/services", strings.NewReader(`{"name":"hello-dcp","image":"ghcr.io/example/hello-dcp:latest","port":8080,"minScale":1,"maxScale":5}`))
+	req.AddCookie(authCookie(session.Token, false))
 	rec := httptest.NewRecorder()
 
 	api.deployService(rec, req)
@@ -143,14 +165,25 @@ func TestDeployService(t *testing.T) {
 }
 
 func TestDeleteService(t *testing.T) {
+	auth := newMemoryAuthManager()
+	registered, err := auth.Register(context.Background(), "default-user", "secret")
+	if err != nil {
+		t.Fatalf("register user: %v", err)
+	}
+	session, err := auth.Login(context.Background(), registered.Username, "secret")
+	if err != nil {
+		t.Fatalf("login user: %v", err)
+	}
 	manager := &fakeServiceManager{}
 	api := &apiServer{
+		auth:      auth,
 		services:  manager,
 		projects:  newMemoryProjectManager(),
 		namespace: "dcp-system",
 	}
 
 	req := httptest.NewRequest(http.MethodDelete, "http://172.16.100.11:8080/api/v1/services/hello-dcp", nil)
+	req.AddCookie(authCookie(session.Token, false))
 	rec := httptest.NewRecorder()
 
 	api.deleteService(rec, req)
@@ -179,6 +212,32 @@ func TestIsUserServiceRejectsInternalCloudRun(t *testing.T) {
 	}
 	if isUserService("hello-dcp", labels, projectScope{UserID: "other-user", ProjectID: defaultProjectID("other-user")}) {
 		t.Fatalf("expected service from another user project to be hidden")
+	}
+}
+
+func TestAuthFlow(t *testing.T) {
+	auth := newMemoryAuthManager()
+
+	user, err := auth.Register(context.Background(), "alice", "secret")
+	if err != nil {
+		t.Fatalf("register user: %v", err)
+	}
+	session, err := auth.Login(context.Background(), user.Username, "secret")
+	if err != nil {
+		t.Fatalf("login user: %v", err)
+	}
+	got, err := auth.CurrentUser(context.Background(), session.Token)
+	if err != nil {
+		t.Fatalf("current user: %v", err)
+	}
+	if got.Username != user.Username {
+		t.Fatalf("unexpected current user: %+v", got)
+	}
+	if err := auth.Logout(context.Background(), session.Token); err != nil {
+		t.Fatalf("logout: %v", err)
+	}
+	if _, err := auth.CurrentUser(context.Background(), session.Token); err == nil {
+		t.Fatalf("expected session to be removed")
 	}
 }
 
@@ -224,6 +283,6 @@ func (f *fakeServiceManager) Delete(_ context.Context, _ projectScope, name stri
 	return nil
 }
 
-func (f *fakeServiceManager) TargetURL(context.Context, projectScope, string) (string, error) {
-	return "http://hello-dcp.dcp-system.svc.cluster.local", nil
+func (f *fakeServiceManager) TargetURL(_ context.Context, scope projectScope, name string) (string, error) {
+	return "http://" + name + "." + scope.ProjectID + ".svc.cluster.local", nil
 }

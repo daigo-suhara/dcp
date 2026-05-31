@@ -28,6 +28,11 @@ type platformResponse struct {
 	Components  []string `json:"components"`
 }
 
+type authRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type projectScope struct {
 	UserID    string
 	ProjectID string
@@ -96,6 +101,7 @@ func main() {
 	mux := http.NewServeMux()
 	api := &apiServer{
 		logger:    logger,
+		auth:      newMemoryAuthManager(),
 		services:  manager,
 		projects:  projects,
 		namespace: namespace,
@@ -103,6 +109,10 @@ func main() {
 	mux.HandleFunc("GET /healthz", healthz)
 	mux.HandleFunc("GET /readyz", readyz)
 	mux.HandleFunc("GET /api/v1/platform", platform)
+	mux.HandleFunc("GET /api/v1/auth/me", api.me)
+	mux.HandleFunc("POST /api/v1/auth/login", api.login)
+	mux.HandleFunc("POST /api/v1/auth/logout", api.logout)
+	mux.HandleFunc("POST /api/v1/users", api.register)
 	mux.HandleFunc("GET /api/v1/projects", api.listProjects)
 	mux.HandleFunc("POST /api/v1/projects", api.createProject)
 	mux.HandleFunc("GET /api/v1/services", api.listServices)
@@ -147,6 +157,7 @@ func main() {
 
 type apiServer struct {
 	logger    *slog.Logger
+	auth      authManager
 	services  serviceManager
 	projects  projectManager
 	namespace string
@@ -184,10 +195,74 @@ func platform(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (a *apiServer) listProjects(w http.ResponseWriter, r *http.Request) {
-	userID, err := userIDFromRequest(r)
+func (a *apiServer) me(w http.ResponseWriter, r *http.Request) {
+	user, err := a.currentUser(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "ログインしてください"})
+		return
+	}
+	writeJSON(w, http.StatusOK, user)
+}
+
+func (a *apiServer) register(w http.ResponseWriter, r *http.Request) {
+	if a.auth == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "認証機能を利用できません"})
+		return
+	}
+	var req authRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "リクエスト本文のJSONが不正です"})
+		return
+	}
+	user, err := a.auth.Register(r.Context(), req.Username, req.Password)
+	if err != nil {
+		if errors.Is(err, errUserExists) {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "そのユーザー名は既に使われています"})
+			return
+		}
+		a.logger.Error("register failed", "error", err)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "ユーザーの作成に失敗しました"})
+		return
+	}
+	writeJSON(w, http.StatusCreated, user)
+}
+
+func (a *apiServer) login(w http.ResponseWriter, r *http.Request) {
+	if a.auth == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "認証機能を利用できません"})
+		return
+	}
+	var req authRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "リクエスト本文のJSONが不正です"})
+		return
+	}
+	session, err := a.auth.Login(r.Context(), req.Username, req.Password)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "ユーザー名またはパスワードが違います"})
+		return
+	}
+	http.SetCookie(w, authCookie(session.Token, isSecureRequest(r)))
+	writeJSON(w, http.StatusOK, session.User)
+}
+
+func (a *apiServer) logout(w http.ResponseWriter, r *http.Request) {
+	if a.auth == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "認証機能を利用できません"})
+		return
+	}
+	cookie, err := r.Cookie(authCookieName)
+	if err == nil && cookie.Value != "" {
+		_ = a.auth.Logout(r.Context(), cookie.Value)
+	}
+	http.SetCookie(w, clearAuthCookie(isSecureRequest(r)))
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *apiServer) listProjects(w http.ResponseWriter, r *http.Request) {
+	userID, err := a.currentUserID(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "ログインしてください"})
 		return
 	}
 	projects, err := a.projects.List(r.Context(), userID)
@@ -210,9 +285,9 @@ func (a *apiServer) listProjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiServer) createProject(w http.ResponseWriter, r *http.Request) {
-	userID, err := userIDFromRequest(r)
+	userID, err := a.currentUserID(r)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "ログインしてください"})
 		return
 	}
 	var req projectRequest
@@ -367,9 +442,9 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	userID, err := userIDFromRequest(r)
+	userID, err := a.currentUserID(r)
 	if err != nil {
-		http.Error(w, err.Error(), statusForScopeError(err))
+		http.Error(w, "ログインしてください", http.StatusUnauthorized)
 		return
 	}
 	scope := projectScope{UserID: userID, ProjectID: parts[0]}
@@ -480,7 +555,7 @@ func validateDeployRequest(req deployRequest) error {
 }
 
 func (a *apiServer) projectScopeFromRequest(r *http.Request) (projectScope, error) {
-	userID, err := userIDFromRequest(r)
+	userID, err := a.currentUserID(r)
 	if err != nil {
 		return projectScope{}, err
 	}
@@ -506,23 +581,40 @@ func (a *apiServer) projectScopeFromRequest(r *http.Request) (projectScope, erro
 	return projectScope{UserID: userID, ProjectID: p.ID}, nil
 }
 
-func userIDFromRequest(r *http.Request) (string, error) {
-	userID := strings.TrimSpace(r.Header.Get("X-DCP-User"))
-	if userID == "" {
-		userID = "default-user"
+func (a *apiServer) currentUser(r *http.Request) (authUser, error) {
+	if a.auth == nil {
+		return authUser{}, fmt.Errorf("認証機能を利用できません")
 	}
-	userID = sanitizeDNSLabel(userID)
-	if userID == "" || !isDNSLabel(userID) {
-		return "", fmt.Errorf("ユーザーIDが不正です")
+	cookie, err := r.Cookie(authCookieName)
+	if err != nil || cookie.Value == "" {
+		return authUser{}, errSessionNotFound
 	}
-	return userID, nil
+	return a.auth.CurrentUser(r.Context(), cookie.Value)
+}
+
+func (a *apiServer) currentUserID(r *http.Request) (string, error) {
+	user, err := a.currentUser(r)
+	if err != nil {
+		return "", err
+	}
+	return user.Username, nil
 }
 
 func statusForScopeError(err error) int {
+	if errors.Is(err, errSessionNotFound) {
+		return http.StatusUnauthorized
+	}
 	if strings.Contains(err.Error(), "見つかりません") {
 		return http.StatusNotFound
 	}
 	return http.StatusBadRequest
+}
+
+func isSecureRequest(r *http.Request) bool {
+	if r.TLS != nil {
+		return true
+	}
+	return strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https")
 }
 
 func isDNSLabel(value string) bool {

@@ -49,6 +49,56 @@ a {
   --header-toggle-offset: 16px;
 }
 
+.auth-page {
+  background: #ffffff;
+}
+
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 84px 16px 32px;
+}
+
+.auth-card {
+  width: min(460px, 100%);
+}
+
+.auth-mode-switch {
+  display: inline-flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.auth-mode-button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(119, 119, 119, 0.22);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--c-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.auth-mode-button.active {
+  border-color: rgba(113, 198, 214, 0.5);
+  background: var(--c-surface-cyan);
+}
+
+.auth-grid {
+  margin-top: 18px;
+}
+
+.logout-button {
+  border-color: rgba(119, 119, 119, 0.18);
+  background: #ffffff;
+  color: var(--c-text);
+}
+
 .app-header {
   position: fixed;
   inset: 0 0 auto 0;
