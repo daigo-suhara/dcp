@@ -10,9 +10,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const projectsConfigMapName = "dcp-projects"
+
+var uuidGenerator = uuid.NewString
 
 type memoryProjectManager struct {
 	mu       sync.Mutex
@@ -62,16 +66,11 @@ func (m *memoryProjectManager) Default(_ context.Context, userID string) (projec
 
 func (m *memoryProjectManager) ensureDefaultLocked(userID string) project {
 	for _, p := range m.projects {
-		if p.Owner == userID && p.ID == defaultProjectID(userID) {
+		if p.Owner == userID && p.Name == "default" {
 			return p
 		}
 	}
-	p := project{
-		ID:        defaultProjectID(userID),
-		Name:      "default",
-		Owner:     userID,
-		CreatedAt: time.Now().UTC().Format(time.RFC3339),
-	}
+	p := newProject(userID, "default", m.projects)
 	m.projects = append(m.projects, p)
 	return p
 }
@@ -275,18 +274,11 @@ func (m *kubeProjectManager) authorize(req *http.Request) {
 
 func newProject(userID string, name string, existing []project) project {
 	now := time.Now().UTC()
-	id := sanitizeDNSLabel(name)
-	if id == "" || id == "default" {
-		id = "project"
+	baseName := sanitizeDNSLabel(name)
+	if baseName == "" {
+		baseName = "project"
 	}
-	baseID := id
-	for i := 0; projectExists(existing, userID, id); i++ {
-		id = fmt.Sprintf("%s-%s", baseID, strconv36(now.UnixNano()+int64(i)))
-		if len(id) > 63 {
-			id = id[:63]
-			id = strings.Trim(id, "-")
-		}
-	}
+	id := newProjectID(baseName, existing, now)
 	return project{
 		ID:        id,
 		Name:      strings.TrimSpace(name),
@@ -296,18 +288,12 @@ func newProject(userID string, name string, existing []project) project {
 }
 
 func ensureDefaultProject(projects []project, userID string) ([]project, project, error) {
-	id := defaultProjectID(userID)
 	for _, p := range projects {
-		if p.Owner == userID && p.ID == id {
+		if p.Owner == userID && p.Name == "default" {
 			return projects, p, nil
 		}
 	}
-	p := project{
-		ID:        id,
-		Name:      "default",
-		Owner:     userID,
-		CreatedAt: time.Now().UTC().Format(time.RFC3339),
-	}
+	p := newProject(userID, "default", projects)
 	return append(projects, p), p, nil
 }
 
@@ -321,21 +307,42 @@ func filterProjectsByOwner(projects []project, userID string) []project {
 	return out
 }
 
-func projectExists(projects []project, userID string, id string) bool {
+func projectExists(projects []project, id string) bool {
 	for _, p := range projects {
-		if p.Owner == userID && p.ID == id {
+		if p.ID == id {
 			return true
 		}
 	}
 	return false
 }
 
-func defaultProjectID(userID string) string {
-	id := sanitizeDNSLabel(userID)
-	if id == "" {
-		id = "default-user"
+func newProjectID(name string, existing []project, now time.Time) string {
+	baseName := strings.Trim(name, "-")
+	if baseName == "" {
+		baseName = "project"
 	}
-	return "default-" + id
+
+	for i := 0; ; i++ {
+		suffix := sanitizeDNSLabel(uuidGenerator())
+		if suffix == "" {
+			suffix = strconv36(now.UnixNano() + int64(i))
+		}
+		maxBaseLen := 63 - 1 - len(suffix)
+		if maxBaseLen < 1 {
+			maxBaseLen = 1
+		}
+		prefix := baseName
+		if len(prefix) > maxBaseLen {
+			prefix = strings.Trim(prefix[:maxBaseLen], "-")
+		}
+		if prefix == "" {
+			prefix = "project"
+		}
+		id := prefix + "-" + suffix
+		if !projectExists(existing, id) {
+			return id
+		}
+	}
 }
 
 func sanitizeDNSLabel(value string) string {

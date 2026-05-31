@@ -10,6 +10,28 @@ import (
 	"time"
 )
 
+const testUUID = "11111111-1111-4111-8111-111111111111"
+
+func withTestUUID(t *testing.T) {
+	t.Helper()
+
+	old := uuidGenerator
+	uuidGenerator = func() string {
+		return testUUID
+	}
+	t.Cleanup(func() {
+		uuidGenerator = old
+	})
+}
+
+func testProjectID(name string) string {
+	prefix := sanitizeDNSLabel(name)
+	if prefix == "" {
+		prefix = "project"
+	}
+	return prefix + "-" + testUUID
+}
+
 func TestHealthz(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -55,6 +77,7 @@ func TestPlatform(t *testing.T) {
 }
 
 func TestListServices(t *testing.T) {
+	withTestUUID(t)
 	auth := testAuth()
 	api := &apiServer{
 		auth: auth,
@@ -64,7 +87,7 @@ func TestListServices(t *testing.T) {
 					Name:      "hello-dcp",
 					Image:     "ghcr.io/example/hello-dcp:latest",
 					Namespace: "dcp-system",
-					ProjectID: defaultProjectID("default-user"),
+					ProjectID: testProjectID("default"),
 					Ready:     true,
 					UpdatedAt: "2026-05-31T00:00:00Z",
 				},
@@ -97,7 +120,7 @@ func TestListServices(t *testing.T) {
 	if len(got.Services) != 1 || got.Services[0].Name != "hello-dcp" {
 		t.Fatalf("unexpected services payload: %+v", got.Services)
 	}
-	if got.Services[0].URL != "https://172.16.100.11:8080/cloudrun/default-default-user/hello-dcp/" {
+	if got.Services[0].URL != "https://172.16.100.11:8080/cloudrun/"+testProjectID("default")+"/hello-dcp/" {
 		t.Fatalf("expected public service url, got %q", got.Services[0].URL)
 	}
 	if got.Services[0].UpdatedAt == "" {
@@ -106,6 +129,7 @@ func TestListServices(t *testing.T) {
 }
 
 func TestDeployService(t *testing.T) {
+	withTestUUID(t)
 	auth := testAuth()
 	manager := &fakeServiceManager{}
 	api := &apiServer{
@@ -135,7 +159,7 @@ func TestDeployService(t *testing.T) {
 	if got.Name != "hello-dcp" || got.Image != "ghcr.io/example/hello-dcp:latest" {
 		t.Fatalf("unexpected deploy response: %+v", got)
 	}
-	if got.URL != "https://172.16.100.11:8080/cloudrun/default-default-user/hello-dcp/" {
+	if got.URL != "https://172.16.100.11:8080/cloudrun/"+testProjectID("default")+"/hello-dcp/" {
 		t.Fatalf("expected public service url, got %q", got.URL)
 	}
 	if got.UpdatedAt == "" {
@@ -144,7 +168,7 @@ func TestDeployService(t *testing.T) {
 	if manager.deployed[0].req.MinScale != 1 || manager.deployed[0].req.MaxScale != 5 {
 		t.Fatalf("expected minScale 1 and maxScale 5, got %+v", manager.deployed[0].req)
 	}
-	if manager.deployed[0].scope.ProjectID != defaultProjectID("default-user") {
+	if manager.deployed[0].scope.ProjectID != testProjectID("default") {
 		t.Fatalf("expected default project scope, got %+v", manager.deployed[0].scope)
 	}
 }
@@ -174,12 +198,13 @@ func TestDeleteService(t *testing.T) {
 }
 
 func TestIsUserServiceRejectsInternalCloudRun(t *testing.T) {
+	withTestUUID(t)
 	labels := map[string]string{
 		"app.kubernetes.io/managed-by": "dcp-core",
 		userLabelKey:                   "default-user",
-		projectLabelKey:                defaultProjectID("default-user"),
+		projectLabelKey:                testProjectID("default"),
 	}
-	scope := projectScope{UserID: "default-user", ProjectID: defaultProjectID("default-user")}
+	scope := projectScope{UserID: "default-user", ProjectID: testProjectID("default")}
 
 	if isUserService("dcp-cloudrun", labels, scope) {
 		t.Fatalf("expected dcp-cloudrun to be treated as internal")
@@ -187,7 +212,7 @@ func TestIsUserServiceRejectsInternalCloudRun(t *testing.T) {
 	if !isUserService("hello-dcp", labels, scope) {
 		t.Fatalf("expected labeled user service to be visible")
 	}
-	if isUserService("hello-dcp", labels, projectScope{UserID: "other-user", ProjectID: defaultProjectID("other-user")}) {
+	if isUserService("hello-dcp", labels, projectScope{UserID: "other-user", ProjectID: testProjectID("other")}) {
 		t.Fatalf("expected service from another user project to be hidden")
 	}
 }

@@ -134,7 +134,7 @@ func (m *knativeServiceManager) List(ctx context.Context, scope projectScope) ([
 			ProjectID:  item.Metadata.Labels[projectLabelKey],
 			Generation: item.Metadata.Generation,
 			CreatedAt:  item.Metadata.CreationTimestamp.UTC().Format(time.RFC3339),
-			URL:        publicServiceURL(item.Metadata.Name),
+			URL:        publicServiceURL(item.Metadata.Labels[projectLabelKey], item.Metadata.Name),
 		}
 		if len(item.Spec.Template.Spec.Containers) > 0 {
 			service.Image = item.Spec.Template.Spec.Containers[0].Image
@@ -363,7 +363,7 @@ func decodeService(res *http.Response, scope projectScope) (deployedService, err
 		ProjectID:  payload.Metadata.Labels[projectLabelKey],
 		Generation: payload.Metadata.Generation,
 		CreatedAt:  payload.Metadata.CreationTimestamp.UTC().Format(time.RFC3339),
-		URL:        publicServiceURL(payload.Metadata.Name),
+		URL:        publicServiceURL(payload.Metadata.Labels[projectLabelKey], payload.Metadata.Name),
 	}
 	if len(payload.Spec.Template.Spec.Containers) > 0 {
 		service.Image = payload.Spec.Template.Spec.Containers[0].Image
@@ -385,8 +385,11 @@ func decodeService(res *http.Response, scope projectScope) (deployedService, err
 	return service, nil
 }
 
-func publicServiceURL(name string) string {
-	return fmt.Sprintf("/cloudrun/%s/", name)
+func publicServiceURL(projectID string, name string) string {
+	if projectID == "" {
+		return fmt.Sprintf("/cloudrun/%s/", name)
+	}
+	return fmt.Sprintf("/cloudrun/%s/%s/", projectID, name)
 }
 
 func (m *knativeServiceManager) authorize(req *http.Request) {
