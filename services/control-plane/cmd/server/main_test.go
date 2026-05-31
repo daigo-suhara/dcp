@@ -61,11 +61,13 @@ func TestListServices(t *testing.T) {
 					Name:      "hello-dcp",
 					Image:     "ghcr.io/example/hello-dcp:latest",
 					Namespace: "dcp-system",
+					ProjectID: defaultProjectID("default-user"),
 					Ready:     true,
 					UpdatedAt: "2026-05-31T00:00:00Z",
 				},
 			},
 		},
+		projects:  newMemoryProjectManager(),
 		namespace: "dcp-system",
 	}
 
@@ -91,7 +93,7 @@ func TestListServices(t *testing.T) {
 	if len(got.Services) != 1 || got.Services[0].Name != "hello-dcp" {
 		t.Fatalf("unexpected services payload: %+v", got.Services)
 	}
-	if got.Services[0].URL != "https://172.16.100.11:8080/cloudrun/hello-dcp/" {
+	if got.Services[0].URL != "https://172.16.100.11:8080/cloudrun/default-default-user/hello-dcp/" {
 		t.Fatalf("expected public service url, got %q", got.Services[0].URL)
 	}
 	if got.Services[0].UpdatedAt == "" {
@@ -103,6 +105,7 @@ func TestDeployService(t *testing.T) {
 	manager := &fakeServiceManager{}
 	api := &apiServer{
 		services:  manager,
+		projects:  newMemoryProjectManager(),
 		namespace: "dcp-system",
 	}
 
@@ -125,14 +128,17 @@ func TestDeployService(t *testing.T) {
 	if got.Name != "hello-dcp" || got.Image != "ghcr.io/example/hello-dcp:latest" {
 		t.Fatalf("unexpected deploy response: %+v", got)
 	}
-	if got.URL != "https://172.16.100.11:8080/cloudrun/hello-dcp/" {
+	if got.URL != "https://172.16.100.11:8080/cloudrun/default-default-user/hello-dcp/" {
 		t.Fatalf("expected public service url, got %q", got.URL)
 	}
 	if got.UpdatedAt == "" {
 		t.Fatalf("expected updatedAt to be populated")
 	}
-	if manager.deployed[0].MinScale != 1 || manager.deployed[0].MaxScale != 5 {
-		t.Fatalf("expected minScale 1 and maxScale 5, got %+v", manager.deployed[0])
+	if manager.deployed[0].req.MinScale != 1 || manager.deployed[0].req.MaxScale != 5 {
+		t.Fatalf("expected minScale 1 and maxScale 5, got %+v", manager.deployed[0].req)
+	}
+	if manager.deployed[0].scope.ProjectID != defaultProjectID("default-user") {
+		t.Fatalf("expected default project scope, got %+v", manager.deployed[0].scope)
 	}
 }
 
@@ -140,6 +146,7 @@ func TestDeleteService(t *testing.T) {
 	manager := &fakeServiceManager{}
 	api := &apiServer{
 		services:  manager,
+		projects:  newMemoryProjectManager(),
 		namespace: "dcp-system",
 	}
 
@@ -156,39 +163,67 @@ func TestDeleteService(t *testing.T) {
 	}
 }
 
+func TestIsUserServiceRejectsInternalCloudRun(t *testing.T) {
+	labels := map[string]string{
+		"app.kubernetes.io/managed-by": "dcp-control-plane",
+		userLabelKey:                   "default-user",
+		projectLabelKey:                defaultProjectID("default-user"),
+	}
+	scope := projectScope{UserID: "default-user", ProjectID: defaultProjectID("default-user")}
+
+	if isUserService("dcp-cloudrun", labels, scope) {
+		t.Fatalf("expected dcp-cloudrun to be treated as internal")
+	}
+	if !isUserService("hello-dcp", labels, scope) {
+		t.Fatalf("expected labeled user service to be visible")
+	}
+	if isUserService("hello-dcp", labels, projectScope{UserID: "other-user", ProjectID: defaultProjectID("other-user")}) {
+		t.Fatalf("expected service from another user project to be hidden")
+	}
+}
+
 type fakeServiceManager struct {
 	services []deployedService
-	deployed []deployRequest
+	deployed []scopedDeploy
 	deleted  []string
 }
 
-func (f *fakeServiceManager) List(context.Context) ([]deployedService, error) {
+type scopedDeploy struct {
+	scope projectScope
+	req   deployRequest
+}
+
+func (f *fakeServiceManager) List(_ context.Context, scope projectScope) ([]deployedService, error) {
 	out := append([]deployedService(nil), f.services...)
 	for i := range out {
+		if out[i].ProjectID == "" {
+			out[i].ProjectID = scope.ProjectID
+		}
 		if out[i].URL == "" {
-			out[i].URL = "/cloudrun/" + out[i].Name + "/"
+			out[i].URL = "/cloudrun/" + out[i].ProjectID + "/" + out[i].Name + "/"
 		}
 	}
 	return out, nil
 }
 
-func (f *fakeServiceManager) Deploy(_ context.Context, req deployRequest) (deployedService, error) {
-	f.deployed = append(f.deployed, req)
+func (f *fakeServiceManager) Deploy(_ context.Context, scope projectScope, req deployRequest) (deployedService, error) {
+	f.deployed = append(f.deployed, scopedDeploy{scope: scope, req: req})
 	return deployedService{
 		Name:      req.Name,
 		Image:     req.Image,
 		Namespace: "dcp-system",
+		ProjectID: scope.ProjectID,
 		Ready:     true,
-		URL:       "/cloudrun/" + req.Name + "/",
+		URL:       "/cloudrun/" + scope.ProjectID + "/" + req.Name + "/",
 		UpdatedAt: "2026-05-31T00:00:00Z",
 	}, nil
 }
 
-func (f *fakeServiceManager) Delete(_ context.Context, name string) error {
+func (f *fakeServiceManager) Delete(_ context.Context, _ projectScope, name string) error {
 	f.deleted = append(f.deleted, name)
 	return nil
 }
 
-func (f *fakeServiceManager) TargetURL(context.Context, string) (string, error) {
+func (f *fakeServiceManager) TargetURL(context.Context, projectScope, string) (string, error) {
 	return "http://hello-dcp.dcp-system.svc.cluster.local", nil
 }

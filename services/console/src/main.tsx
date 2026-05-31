@@ -11,7 +11,22 @@ import "./styles.css";
 
 type PlatformResponse = {
   namespace: string;
+  user: string;
+  projectId: string;
   services: DeployedService[];
+};
+
+type ProjectsResponse = {
+  user: string;
+  projects: Project[];
+  defaultProjectId: string;
+};
+
+type Project = {
+  id: string;
+  name: string;
+  owner: string;
+  createdAt: string;
 };
 
 type DeployedService = {
@@ -23,6 +38,7 @@ type DeployedService = {
   createdAt?: string;
   updatedAt?: string;
   namespace: string;
+  projectId?: string;
   generation?: number;
 };
 
@@ -77,6 +93,10 @@ function parseRoute(hash: string): RouteState {
 
 function App() {
   const [services, setServices] = useState<DeployedService[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState(() => localStorage.getItem("dcp-active-project") ?? "");
+  const [projectName, setProjectName] = useState("");
+  const [creatingProject, setCreatingProject] = useState(false);
   const [route, setRoute] = useState<RouteState>(() => parseRoute(window.location.hash));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -112,6 +132,18 @@ function App() {
     };
 
     window.addEventListener("hashchange", handleHashChange);
+    void loadProjects();
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!activeProjectId) {
+      return;
+    }
+
     void loadServices();
     const timer = window.setInterval(() => {
       void loadServices({ quiet: true });
@@ -119,17 +151,51 @@ function App() {
 
     return () => {
       window.clearInterval(timer);
-      window.removeEventListener("hashchange", handleHashChange);
     };
-  }, []);
+  }, [activeProjectId]);
+
+  function apiHeaders(extra?: HeadersInit) {
+    const headers = new Headers(extra);
+    headers.set("X-DCP-User", localStorage.getItem("dcp-user") ?? "default-user");
+    if (activeProjectId) {
+      headers.set("X-DCP-Project", activeProjectId);
+    }
+    return headers;
+  }
+
+  async function loadProjects() {
+    try {
+      const response = await fetch("/api/v1/projects", {
+        headers: apiHeaders()
+      });
+      const data = (await response.json()) as ProjectsResponse | { error?: string };
+      if (!response.ok) {
+        throw new Error("error" in data && data.error ? data.error : "プロジェクト一覧を読み込めませんでした");
+      }
+      if ("projects" in data) {
+        setProjects(data.projects);
+        const saved = localStorage.getItem("dcp-active-project");
+        const nextProject = data.projects.find((project) => project.id === saved)?.id ?? data.defaultProjectId;
+        setActiveProjectId(nextProject);
+        localStorage.setItem("dcp-active-project", nextProject);
+      }
+    } catch (projectError) {
+      setError(projectError instanceof Error ? projectError.message : "プロジェクト一覧を読み込めませんでした");
+    }
+  }
 
   async function loadServices(options?: { quiet?: boolean }) {
+    if (!activeProjectId) {
+      return;
+    }
     if (!options?.quiet) {
       setLoading(true);
       setError("");
     }
     try {
-      const response = await fetch("/api/v1/services");
+      const response = await fetch("/api/v1/services", {
+        headers: apiHeaders()
+      });
       const data = (await response.json()) as PlatformResponse | { error?: string };
       if (!response.ok) {
         throw new Error("error" in data && data.error ? data.error : "サービス一覧を読み込めませんでした");
@@ -148,6 +214,38 @@ function App() {
     }
   }
 
+  async function handleCreateProject(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCreatingProject(true);
+    setError("");
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/v1/projects", {
+        method: "POST",
+        headers: apiHeaders({
+          "Content-Type": "application/json"
+        }),
+        body: JSON.stringify({ name: projectName.trim() })
+      });
+      const data = (await response.json()) as Project | { error?: string };
+      if (!response.ok) {
+        throw new Error("error" in data && data.error ? data.error : "プロジェクトの作成に失敗しました");
+      }
+      if ("id" in data) {
+        setProjects((current) => [...current, data]);
+        setActiveProjectId(data.id);
+        localStorage.setItem("dcp-active-project", data.id);
+        setProjectName("");
+        setMessage(`${data.name} を作成しました`);
+      }
+    } catch (projectError) {
+      setError(projectError instanceof Error ? projectError.message : "プロジェクトの作成に失敗しました");
+    } finally {
+      setCreatingProject(false);
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -157,9 +255,9 @@ function App() {
     try {
       const response = await fetch("/api/v1/services", {
         method: "POST",
-        headers: {
+        headers: apiHeaders({
           "Content-Type": "application/json"
-        },
+        }),
         body: JSON.stringify({
           name: form.name.trim(),
           image: form.image.trim(),
@@ -202,7 +300,8 @@ function App() {
 
     try {
       const response = await fetch(`/api/v1/services/${name}`, {
-        method: "DELETE"
+        method: "DELETE",
+        headers: apiHeaders()
       });
 
       if (!response.ok && response.status !== 204) {
@@ -243,6 +342,34 @@ function App() {
         </button>
         <div className="brand-slot">
           <BrandLogo />
+        </div>
+        <div className="project-switcher" aria-label="project-switcher">
+          <select
+            className="project-select"
+            value={activeProjectId}
+            onChange={(event) => {
+              setActiveProjectId(event.target.value);
+              localStorage.setItem("dcp-active-project", event.target.value);
+            }}
+          >
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </select>
+          <form className="project-create" onSubmit={handleCreateProject}>
+            <input
+              className="project-input"
+              value={projectName}
+              onChange={(event) => setProjectName(event.target.value)}
+              placeholder="新しいプロジェクト"
+              aria-label="新しいプロジェクト"
+            />
+            <button className="project-create-button" type="submit" disabled={creatingProject || !projectName.trim()}>
+              作成
+            </button>
+          </form>
         </div>
       </header>
       {sidebarOpen ? <div className="sidebar-backdrop" role="presentation" onClick={() => setSidebarOpen(false)} /> : null}

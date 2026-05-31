@@ -64,6 +64,66 @@ a {
   backdrop-filter: blur(10px);
 }
 
+.project-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.project-select,
+.project-input {
+  min-height: 34px;
+  border: 1px solid rgba(119, 119, 119, 0.24);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--c-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.project-select {
+  max-width: 180px;
+  padding: 0 10px;
+}
+
+.project-create {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-input {
+  width: 160px;
+  padding: 0 10px;
+}
+
+.project-input::placeholder {
+  color: rgba(119, 119, 119, 0.42);
+}
+
+.project-create-button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(113, 198, 214, 0.46);
+  border-radius: 8px;
+  background: var(--c-primary);
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+
+.project-create-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
 .header-toggle {
   display: inline-flex;
   align-items: center;
@@ -953,6 +1013,22 @@ h1 {
   .app-header {
     height: 52px;
     padding: 0 12px;
+  }
+
+  .brand-slot {
+    min-width: 0;
+  }
+
+  .project-switcher {
+    gap: 6px;
+  }
+
+  .project-select {
+    max-width: 118px;
+  }
+
+  .project-input {
+    width: 112px;
   }
 
   .app-shell {

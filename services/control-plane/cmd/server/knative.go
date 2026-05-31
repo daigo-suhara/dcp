@@ -14,9 +14,15 @@ import (
 	"time"
 )
 
-const userServiceManagerLabel = "dcp-control-plane"
+const (
+	userServiceManagerLabel = "dcp-control-plane"
+	internalCloudRunName    = "dcp-cloudrun"
+	userLabelKey            = "dcp.dev/user"
+	projectLabelKey         = "dcp.dev/project"
+)
 
 var errServiceNotFound = errors.New("service not found")
+var errProjectNotFound = errors.New("project not found")
 
 type knativeServiceManager struct {
 	namespace string
@@ -28,13 +34,27 @@ type knativeServiceManager struct {
 func newServiceManager(namespace string) (serviceManager, error) {
 	baseURL := fmt.Sprintf("https://%s", env("KUBERNETES_SERVICE_HOST", "kubernetes.default.svc"))
 	tokenPath := env("DCP_KUBERNETES_TOKEN_FILE", "/var/run/secrets/kubernetes.io/serviceaccount/token")
-	caPath := env("DCP_KUBERNETES_CA_FILE", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 
 	tokenBytes, err := os.ReadFile(tokenPath)
 	if err != nil {
 		return nil, err
 	}
 
+	client, err := newKubernetesHTTPClient()
+	if err != nil {
+		return nil, err
+	}
+
+	return &knativeServiceManager{
+		namespace: namespace,
+		baseURL:   baseURL,
+		token:     string(tokenBytes),
+		client:    client,
+	}, nil
+}
+
+func newKubernetesHTTPClient() (*http.Client, error) {
+	caPath := env("DCP_KUBERNETES_CA_FILE", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil || rootCAs == nil {
 		rootCAs = x509.NewCertPool()
@@ -42,23 +62,17 @@ func newServiceManager(namespace string) (serviceManager, error) {
 	if caBytes, readErr := os.ReadFile(caPath); readErr == nil {
 		rootCAs.AppendCertsFromPEM(caBytes)
 	}
-
-	return &knativeServiceManager{
-		namespace: namespace,
-		baseURL:   baseURL,
-		token:     string(tokenBytes),
-		client: &http.Client{
-			Timeout: 20 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs: rootCAs,
-				},
+	return &http.Client{
+		Timeout: 20 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: rootCAs,
 			},
 		},
 	}, nil
 }
 
-func (m *knativeServiceManager) List(ctx context.Context) ([]deployedService, error) {
+func (m *knativeServiceManager) List(ctx context.Context, scope projectScope) ([]deployedService, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services", m.baseURL, m.namespace), nil)
 	if err != nil {
 		return nil, err
@@ -111,12 +125,13 @@ func (m *knativeServiceManager) List(ctx context.Context) ([]deployedService, er
 
 	out := make([]deployedService, 0, len(payload.Items))
 	for _, item := range payload.Items {
-		if !isUserService(item.Metadata.Labels) {
+		if !isUserService(item.Metadata.Name, item.Metadata.Labels, scope) {
 			continue
 		}
 		service := deployedService{
 			Name:       item.Metadata.Name,
 			Namespace:  m.namespace,
+			ProjectID:  item.Metadata.Labels[projectLabelKey],
 			Generation: item.Metadata.Generation,
 			CreatedAt:  item.Metadata.CreationTimestamp.UTC().Format(time.RFC3339),
 			URL:        publicServiceURL(item.Metadata.Name),
@@ -143,8 +158,8 @@ func (m *knativeServiceManager) List(ctx context.Context) ([]deployedService, er
 	return out, nil
 }
 
-func (m *knativeServiceManager) TargetURL(ctx context.Context, name string) (string, error) {
-	if _, err := m.getUserService(ctx, name); err != nil {
+func (m *knativeServiceManager) TargetURL(ctx context.Context, scope projectScope, name string) (string, error) {
+	if _, err := m.getUserService(ctx, scope, name); err != nil {
 		return "", err
 	}
 
@@ -179,7 +194,7 @@ func (m *knativeServiceManager) TargetURL(ctx context.Context, name string) (str
 	return payload.Status.URL, nil
 }
 
-func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (deployedService, error) {
+func (m *knativeServiceManager) Deploy(ctx context.Context, scope projectScope, req deployRequest) (deployedService, error) {
 	manifest := knativeServiceManifest{
 		APIVersion: "serving.knative.dev/v1",
 		Kind:       "Service",
@@ -190,10 +205,14 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 		"app.kubernetes.io/instance":   "dcp",
 		"app.kubernetes.io/component":  "cloudrun",
 		"app.kubernetes.io/managed-by": "dcp-control-plane",
+		userLabelKey:                   scope.UserID,
+		projectLabelKey:                scope.ProjectID,
 	}
 	manifest.Spec.Template.Metadata.Labels = map[string]string{
 		"app.kubernetes.io/instance":  "dcp",
 		"app.kubernetes.io/component": "cloudrun",
+		userLabelKey:                  scope.UserID,
+		projectLabelKey:               scope.ProjectID,
 	}
 	if req.MinScale > 0 || req.MaxScale > 0 {
 		manifest.Spec.Template.Metadata.Annotations = map[string]string{}
@@ -237,11 +256,11 @@ func (m *knativeServiceManager) Deploy(ctx context.Context, req deployRequest) (
 		return deployedService{}, decodeAPIError(res)
 	}
 
-	return decodeService(res)
+	return decodeService(res, scope)
 }
 
-func (m *knativeServiceManager) Delete(ctx context.Context, name string) error {
-	if _, err := m.getUserService(ctx, name); err != nil {
+func (m *knativeServiceManager) Delete(ctx context.Context, scope projectScope, name string) error {
+	if _, err := m.getUserService(ctx, scope, name); err != nil {
 		return err
 	}
 
@@ -264,7 +283,7 @@ func (m *knativeServiceManager) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
-func (m *knativeServiceManager) getUserService(ctx context.Context, name string) (deployedService, error) {
+func (m *knativeServiceManager) getUserService(ctx context.Context, scope projectScope, name string) (deployedService, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services/%s", m.baseURL, m.namespace, name), nil)
 	if err != nil {
 		return deployedService{}, err
@@ -284,7 +303,7 @@ func (m *knativeServiceManager) getUserService(ctx context.Context, name string)
 		return deployedService{}, decodeAPIError(res)
 	}
 
-	service, err := decodeService(res)
+	service, err := decodeService(res, scope)
 	if err != nil {
 		return deployedService{}, err
 	}
@@ -294,11 +313,16 @@ func (m *knativeServiceManager) getUserService(ctx context.Context, name string)
 	return service, nil
 }
 
-func isUserService(labels map[string]string) bool {
-	return labels["app.kubernetes.io/managed-by"] == userServiceManagerLabel
+func isUserService(name string, labels map[string]string, scope projectScope) bool {
+	if name == internalCloudRunName {
+		return false
+	}
+	return labels["app.kubernetes.io/managed-by"] == userServiceManagerLabel &&
+		labels[userLabelKey] == scope.UserID &&
+		labels[projectLabelKey] == scope.ProjectID
 }
 
-func decodeService(res *http.Response) (deployedService, error) {
+func decodeService(res *http.Response, scope projectScope) (deployedService, error) {
 	var payload struct {
 		Metadata struct {
 			Name              string            `json:"name"`
@@ -329,13 +353,14 @@ func decodeService(res *http.Response) (deployedService, error) {
 	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
 		return deployedService{}, err
 	}
-	if !isUserService(payload.Metadata.Labels) {
+	if !isUserService(payload.Metadata.Name, payload.Metadata.Labels, scope) {
 		return deployedService{}, errServiceNotFound
 	}
 
 	service := deployedService{
 		Name:       payload.Metadata.Name,
 		Namespace:  payload.Metadata.Namespace,
+		ProjectID:  payload.Metadata.Labels[projectLabelKey],
 		Generation: payload.Metadata.Generation,
 		CreatedAt:  payload.Metadata.CreationTimestamp.UTC().Format(time.RFC3339),
 		URL:        publicServiceURL(payload.Metadata.Name),

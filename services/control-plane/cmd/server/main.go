@@ -28,6 +28,22 @@ type platformResponse struct {
 	Components  []string `json:"components"`
 }
 
+type projectScope struct {
+	UserID    string
+	ProjectID string
+}
+
+type project struct {
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Owner     string `json:"owner"`
+	CreatedAt string `json:"createdAt"`
+}
+
+type projectRequest struct {
+	Name string `json:"name"`
+}
+
 type deployRequest struct {
 	Name     string `json:"name"`
 	Image    string `json:"image"`
@@ -45,14 +61,22 @@ type deployedService struct {
 	CreatedAt  string `json:"createdAt,omitempty"`
 	UpdatedAt  string `json:"updatedAt,omitempty"`
 	Namespace  string `json:"namespace"`
+	ProjectID  string `json:"projectId,omitempty"`
 	Generation int64  `json:"generation,omitempty"`
 }
 
 type serviceManager interface {
-	List(context.Context) ([]deployedService, error)
-	Deploy(context.Context, deployRequest) (deployedService, error)
-	Delete(context.Context, string) error
-	TargetURL(context.Context, string) (string, error)
+	List(context.Context, projectScope) ([]deployedService, error)
+	Deploy(context.Context, projectScope, deployRequest) (deployedService, error)
+	Delete(context.Context, projectScope, string) error
+	TargetURL(context.Context, projectScope, string) (string, error)
+}
+
+type projectManager interface {
+	List(context.Context, string) ([]project, error)
+	Create(context.Context, string, string) (project, error)
+	Ensure(context.Context, string, string) (project, error)
+	Default(context.Context, string) (project, error)
 }
 
 func main() {
@@ -63,16 +87,24 @@ func main() {
 	if err != nil {
 		logger.Warn("service manager disabled", "error", err)
 	}
+	projects, err := newProjectManager(namespace)
+	if err != nil {
+		logger.Warn("project manager disabled", "error", err)
+		projects = newMemoryProjectManager()
+	}
 
 	mux := http.NewServeMux()
 	api := &apiServer{
 		logger:    logger,
 		services:  manager,
+		projects:  projects,
 		namespace: namespace,
 	}
 	mux.HandleFunc("GET /healthz", healthz)
 	mux.HandleFunc("GET /readyz", readyz)
 	mux.HandleFunc("GET /api/v1/platform", platform)
+	mux.HandleFunc("GET /api/v1/projects", api.listProjects)
+	mux.HandleFunc("POST /api/v1/projects", api.createProject)
 	mux.HandleFunc("GET /api/v1/services", api.listServices)
 	mux.HandleFunc("POST /api/v1/services", api.deployService)
 	mux.HandleFunc("DELETE /api/v1/services/", api.deleteService)
@@ -116,6 +148,7 @@ func main() {
 type apiServer struct {
 	logger    *slog.Logger
 	services  serviceManager
+	projects  projectManager
 	namespace string
 }
 
@@ -151,6 +184,56 @@ func platform(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (a *apiServer) listProjects(w http.ResponseWriter, r *http.Request) {
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	projects, err := a.projects.List(r.Context(), userID)
+	if err != nil {
+		a.logger.Error("list projects failed", "error", err, "user", userID)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "プロジェクト一覧の取得に失敗しました"})
+		return
+	}
+	defaultProject, err := a.projects.Default(r.Context(), userID)
+	if err != nil {
+		a.logger.Error("resolve default project failed", "error", err, "user", userID)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "デフォルトプロジェクトの取得に失敗しました"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"user":             userID,
+		"projects":         projects,
+		"defaultProjectId": defaultProject.ID,
+	})
+}
+
+func (a *apiServer) createProject(w http.ResponseWriter, r *http.Request) {
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+		return
+	}
+	var req projectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "リクエスト本文のJSONが不正です"})
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "プロジェクト名は必須です"})
+		return
+	}
+	project, err := a.projects.Create(r.Context(), userID, req.Name)
+	if err != nil {
+		a.logger.Error("create project failed", "error", err, "user", userID)
+		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "プロジェクトの作成に失敗しました"})
+		return
+	}
+	writeJSON(w, http.StatusCreated, project)
+}
+
 func (a *apiServer) listServices(w http.ResponseWriter, r *http.Request) {
 	if a.services == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
@@ -158,8 +241,13 @@ func (a *apiServer) listServices(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	scope, err := a.projectScopeFromRequest(r)
+	if err != nil {
+		writeJSON(w, statusForScopeError(err), map[string]string{"error": err.Error()})
+		return
+	}
 
-	services, err := a.services.List(r.Context())
+	services, err := a.services.List(r.Context(), scope)
 	if err != nil {
 		a.logger.Error("list services failed", "error", err)
 		writeJSON(w, http.StatusBadGateway, map[string]string{
@@ -171,6 +259,8 @@ func (a *apiServer) listServices(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"namespace": a.namespace,
+		"user":      scope.UserID,
+		"projectId": scope.ProjectID,
 		"services":  services,
 	})
 }
@@ -180,6 +270,11 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
 			"error": "サービス管理機能を利用できません",
 		})
+		return
+	}
+	scope, err := a.projectScopeFromRequest(r)
+	if err != nil {
+		writeJSON(w, statusForScopeError(err), map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -205,7 +300,7 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service, err := a.services.Deploy(r.Context(), req)
+	service, err := a.services.Deploy(r.Context(), scope, req)
 	if err != nil {
 		a.logger.Error("deploy service failed", "error", err, "name", req.Name)
 		writeJSON(w, http.StatusBadGateway, map[string]string{
@@ -225,6 +320,11 @@ func (a *apiServer) deleteService(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	scope, err := a.projectScopeFromRequest(r)
+	if err != nil {
+		writeJSON(w, statusForScopeError(err), map[string]string{"error": err.Error()})
+		return
+	}
 
 	name := strings.TrimPrefix(r.URL.Path, "/api/v1/services/")
 	name = strings.Trim(name, "/")
@@ -233,7 +333,7 @@ func (a *apiServer) deleteService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.services.Delete(r.Context(), name); err != nil {
+	if err := a.services.Delete(r.Context(), scope, name); err != nil {
 		if errors.Is(err, errServiceNotFound) {
 			http.NotFound(w, r)
 			return
@@ -262,14 +362,32 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	parts := strings.SplitN(trimmed, "/", 2)
-	name := parts[0]
+	parts := strings.SplitN(trimmed, "/", 3)
+	if len(parts) < 2 {
+		http.NotFound(w, r)
+		return
+	}
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		http.Error(w, err.Error(), statusForScopeError(err))
+		return
+	}
+	scope := projectScope{UserID: userID, ProjectID: parts[0]}
+	if !isDNSLabel(scope.ProjectID) {
+		http.NotFound(w, r)
+		return
+	}
+	if _, err := a.projects.Ensure(r.Context(), scope.UserID, scope.ProjectID); err != nil {
+		http.Error(w, "プロジェクトが見つかりません", http.StatusNotFound)
+		return
+	}
+	name := parts[1]
 	if !isDNSLabel(name) {
 		http.NotFound(w, r)
 		return
 	}
 
-	targetURL, err := a.services.TargetURL(r.Context(), name)
+	targetURL, err := a.services.TargetURL(r.Context(), scope, name)
 	if err != nil {
 		a.logger.Error("resolve service target failed", "error", err, "name", name)
 		http.Error(w, "サービスが見つかりません", http.StatusNotFound)
@@ -284,8 +402,8 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	remainder := ""
-	if len(parts) == 2 {
-		remainder = "/" + parts[1]
+	if len(parts) == 3 {
+		remainder = "/" + parts[2]
 	}
 	proxy := httputil.NewSingleHostReverseProxy(target)
 	proxy.Director = func(req *http.Request) {
@@ -311,7 +429,7 @@ func (a *apiServer) setPublicURLs(r *http.Request, services []deployedService) {
 }
 
 func (a *apiServer) setPublicURL(r *http.Request, service *deployedService) {
-	service.URL = fmt.Sprintf("%s/cloudrun/%s/", publicBaseURL(r), service.Name)
+	service.URL = fmt.Sprintf("%s/cloudrun/%s/%s/", publicBaseURL(r), service.ProjectID, service.Name)
 }
 
 func publicBaseURL(r *http.Request) string {
@@ -359,6 +477,52 @@ func validateDeployRequest(req deployRequest) error {
 		return fmt.Errorf("最大スケール数は最小スケール数以上で指定してください")
 	}
 	return nil
+}
+
+func (a *apiServer) projectScopeFromRequest(r *http.Request) (projectScope, error) {
+	userID, err := userIDFromRequest(r)
+	if err != nil {
+		return projectScope{}, err
+	}
+	projectID := strings.TrimSpace(r.Header.Get("X-DCP-Project"))
+	if projectID == "" {
+		projectID = strings.TrimSpace(r.URL.Query().Get("project"))
+	}
+	var p project
+	if projectID == "" {
+		p, err = a.projects.Default(r.Context(), userID)
+	} else {
+		if !isDNSLabel(projectID) {
+			return projectScope{}, fmt.Errorf("プロジェクトIDが不正です")
+		}
+		p, err = a.projects.Ensure(r.Context(), userID, projectID)
+	}
+	if err != nil {
+		if errors.Is(err, errProjectNotFound) {
+			return projectScope{}, fmt.Errorf("プロジェクトが見つかりません")
+		}
+		return projectScope{}, fmt.Errorf("プロジェクトの確認に失敗しました")
+	}
+	return projectScope{UserID: userID, ProjectID: p.ID}, nil
+}
+
+func userIDFromRequest(r *http.Request) (string, error) {
+	userID := strings.TrimSpace(r.Header.Get("X-DCP-User"))
+	if userID == "" {
+		userID = "default-user"
+	}
+	userID = sanitizeDNSLabel(userID)
+	if userID == "" || !isDNSLabel(userID) {
+		return "", fmt.Errorf("ユーザーIDが不正です")
+	}
+	return userID, nil
+}
+
+func statusForScopeError(err error) int {
+	if strings.Contains(err.Error(), "見つかりません") {
+		return http.StatusNotFound
+	}
+	return http.StatusBadRequest
 }
 
 func isDNSLabel(value string) bool {
