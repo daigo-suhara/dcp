@@ -183,6 +183,8 @@ spec:
               value: "true"
             - name: KC_PROXY_HEADERS
               value: xforwarded
+            - name: KC_HOSTNAME_URL
+              value: {{ .Values.keycloak.hostnameUrl | quote }}
             - name: KC_HOSTNAME_STRICT
               value: "false"
           ports:

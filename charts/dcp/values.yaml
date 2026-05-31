@@ -45,6 +45,7 @@ keycloak:
     password: dcp-keycloak-db-change-me
     storageSize: 10Gi
   baseUrl: ""
+  hostnameUrl: "https://cloud.daigo-suhara.com/keycloak"
   realm: dcp
   clientId: dcp-core
   clientSecret: ""
