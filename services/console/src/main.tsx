@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import {
   HiOutlineHome,
   HiOutlineCloud,
-  HiOutlineGlobeAlt
 } from "react-icons/hi2";
 import { HiOutlineServerStack } from "react-icons/hi2";
 import { SiGithub, SiDocker } from "react-icons/si";
@@ -67,8 +66,8 @@ const initialForm: DeployForm = {
 
 const navItems = [
   { id: "home", label: "ホーム" },
-  { id: "deploy", label: "仮想マシン" },
-  { id: "services", label: "ネットワーク" }
+  { id: "container", label: "コンテナ" },
+  { id: "deploy", label: "仮想マシン" }
 ] as const;
 
 type RouteState = {
@@ -84,15 +83,17 @@ function parseRoute(hash: string): RouteState {
   }
 
   const [section, ...rest] = route.split("/");
-  if (section === "services" && rest.length > 0) {
+  const normalizedSection = section === "services" ? "container" : section;
+
+  if (normalizedSection === "container" && rest.length > 0) {
     return {
-      section: "services",
+      section: "container",
       selectedServiceName: decodeURIComponent(rest.join("/"))
     };
   }
 
-  if (navItems.some((item) => item.id === section)) {
-    return { section: section as RouteState["section"], selectedServiceName: null };
+  if (navItems.some((item) => item.id === normalizedSection)) {
+    return { section: normalizedSection as RouteState["section"], selectedServiceName: null };
   }
 
   return { section: "home", selectedServiceName: null };
@@ -118,7 +119,7 @@ function App() {
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
   const selectedService =
-    route.section === "services" && route.selectedServiceName
+    route.section === "container" && route.selectedServiceName
       ? services.find((service) => service.name === route.selectedServiceName)
       : null;
   const selectedStatus = selectedService ? getServiceStatus(selectedService) : null;
@@ -401,7 +402,7 @@ function App() {
 
       setMessage(`${name} を削除しました`);
       if (route.selectedServiceName === name) {
-        window.location.hash = "#services";
+        window.location.hash = "#container";
       }
       await loadServices();
     } catch (deleteError) {
@@ -534,10 +535,10 @@ function App() {
               <span className="nav-icon" aria-hidden="true">
                 {item.id === "home" ? (
                   <HiOutlineHome />
-                ) : item.id === "deploy" ? (
-                  <HiOutlineServerStack />
+                ) : item.id === "container" ? (
+                  <HiOutlineCloud />
                 ) : (
-                  <HiOutlineGlobeAlt />
+                  <HiOutlineServerStack />
                 )}
               </span>
               <span className="nav-copy">
@@ -626,89 +627,153 @@ function App() {
               </div>
             </section>
 
-            <section className="panel dashboard-note">
-              <p className="panel-kicker">ホーム</p>
-              <h2>コンテナ管理へ進む前の入口です</h2>
-              <p>プロジェクトを切り替えてから、下のコンテナ一覧やサービス作成を行ってください。</p>
-            </section>
-
-            <section className="service-rail-wrap">
-              <section className="service-rail" aria-label="container-services">
-                <section className="service-card panel service-list-card" id="services">
-                  <div className="panel-header">
-                    <div>
-                      <p className="panel-kicker">サービス</p>
-                      <h2>デプロイ済みサービス</h2>
+          </section>
+        ) : route.section === "container" ? (
+          <section className="service-rail" aria-label="container-services">
+            {route.selectedServiceName ? (
+              <section className="service-card panel service-detail-card" aria-label="service-detail">
+                {selectedService ? (
+                  <>
+                    <div className="service-detail-head">
+                      <div className="service-detail-title">
+                        <span className={`status-icon ${selectedStatus}`} aria-hidden="true">
+                          {selectedStatus === "ready" ? (
+                            <CheckIcon />
+                          ) : selectedStatus === "loading" ? (
+                            <LoadingIcon />
+                          ) : (
+                            <ErrorIcon />
+                          )}
+                        </span>
+                        <h3>{selectedService.name}</h3>
+                      </div>
+                      <a className="detail-back" href="#container">
+                        一覧に戻る
+                      </a>
                     </div>
-                  </div>
 
-                  <div className="service-list-table">
-                    <div className="service-list-head" aria-hidden="true">
-                      <span className="service-list-head-status" />
-                      <span className="service-list-head-main">
-                        <span className="service-list-head-name">名前</span>
-                        <span className="service-list-head-updated">更新日時</span>
-                      </span>
+                    <div className="detail-grid">
+                      <div>
+                        <dt>状態</dt>
+                        <dd>{formatServiceStatus(selectedService)}</dd>
+                      </div>
+                      <div>
+                        <dt>イメージ</dt>
+                        <dd>{selectedService.image}</dd>
+                      </div>
+                      <div>
+                        <dt>URL</dt>
+                        <dd>
+                          {selectedService.url ? (
+                            <a href={selectedService.url} target="_blank" rel="noreferrer">
+                              {selectedService.url}
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>作成時刻</dt>
+                        <dd>{selectedService.createdAt ?? "-"}</dd>
+                      </div>
                     </div>
 
-                    <div className="service-list">
-                      {services.length > 0 ? (
-                        services.map((service) => {
-                          const status = getServiceStatus(service);
-                          return (
-                            <article className="service-row" key={service.name}>
-                              <span className="service-cell service-cell-status" aria-hidden="true">
-                                <span className={`status-icon ${status}`}>
-                                  {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
-                                </span>
-                              </span>
-                              <span className="service-cell service-cell-name">
-                                <a className="service-name-link" href={`#services/${encodeURIComponent(service.name)}`}>
-                                  <span className="service-name-text">{service.name}</span>
-                                </a>
-                                <span className="service-updated-inline">
-                                  {service.updatedAt || service.createdAt
-                                    ? formatServiceTimestamp(service.updatedAt || service.createdAt || "")
-                                    : "-"}
-                                </span>
-                              </span>
-                            </article>
-                          );
-                        })
-                      ) : (
-                        <div className="empty-state">
-                          <p>{loading ? "読み込み中..." : "まだサービスはありません。"}</p>
-                        </div>
-                      )}
+                    <div className="delete-actions detail-actions">
+                      <button className="pill danger button" type="button" onClick={() => requestDelete(selectedService.name)}>
+                        削除
+                      </button>
                     </div>
-                  </div>
-                </section>
-
-                <section className="service-card panel deploy-panel" aria-label="サービスのデプロイ">
-                  <div className="panel-header">
-                    <div>
-                      <p className="panel-kicker">作成</p>
-                      <h2>サービスのデプロイ</h2>
+                  </>
+                ) : (
+                  <>
+                    <div className="service-detail-head">
+                      <div className="service-detail-title">
+                        <h3>サービスが見つかりません</h3>
+                      </div>
+                      <a className="detail-back" href="#container">
+                        一覧に戻る
+                      </a>
                     </div>
-                  </div>
-
-                  <div className="deploy-panel-grid">
-                    <a className="deploy-launch-card" href="#deploy" aria-label="コンテナのデプロイ">
-                      <span className="deploy-launch-icon" aria-hidden="true">
-                        <SiDocker />
-                      </span>
-                      <span className="deploy-launch-label">コンテナのデプロイ</span>
-                    </a>
-
-                    <a className="deploy-launch-card deploy-launch-secondary" href="#services" aria-label="リポジトリの接続">
-                      <span className="deploy-launch-icon deploy-launch-glyph" aria-hidden="true">
-                        <SiGithub />
-                      </span>
-                      <span className="deploy-launch-label">リポジトリの接続</span>
-                    </a>
-                  </div>
-                </section>
+                    <p className="service-detail-empty">削除されたか、まだ同期されていません。</p>
+                  </>
+                )}
               </section>
+            ) : (
+              <section className="service-card panel service-list-card" id="container">
+                <div className="panel-header">
+                  <div>
+                    <p className="panel-kicker">サービス</p>
+                    <h2>デプロイ済みサービス</h2>
+                  </div>
+                </div>
+
+                <div className="service-list-table">
+                  <div className="service-list-head" aria-hidden="true">
+                    <span className="service-list-head-status" />
+                    <span className="service-list-head-main">
+                      <span className="service-list-head-name">名前</span>
+                      <span className="service-list-head-updated">更新日時</span>
+                    </span>
+                  </div>
+
+                  <div className="service-list">
+                    {services.length > 0 ? (
+                      services.map((service) => {
+                        const status = getServiceStatus(service);
+                        return (
+                          <article className="service-row" key={service.name}>
+                            <span className="service-cell service-cell-status" aria-hidden="true">
+                              <span className={`status-icon ${status}`}>
+                                {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
+                              </span>
+                            </span>
+                            <span className="service-cell service-cell-name">
+                              <a className="service-name-link" href={`#container/${encodeURIComponent(service.name)}`}>
+                                <span className="service-name-text">{service.name}</span>
+                              </a>
+                              <span className="service-updated-inline">
+                                {service.updatedAt || service.createdAt
+                                  ? formatServiceTimestamp(service.updatedAt || service.createdAt || "")
+                                  : "-"}
+                              </span>
+                            </span>
+                          </article>
+                        );
+                      })
+                    ) : (
+                      <div className="empty-state">
+                        <p>{loading ? "読み込み中..." : "まだサービスはありません。"}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <section className="service-card panel deploy-panel" aria-label="サービスのデプロイ">
+              <div className="panel-header">
+                <div>
+                  <p className="panel-kicker">作成</p>
+                  <h2>サービスのデプロイ</h2>
+                </div>
+              </div>
+
+              <div className="deploy-panel-grid">
+                <a className="deploy-launch-card" href="#deploy" aria-label="コンテナのデプロイ">
+                  <span className="deploy-launch-icon" aria-hidden="true">
+                    <SiDocker />
+                  </span>
+                  <span className="deploy-launch-label">コンテナのデプロイ</span>
+                </a>
+
+                <a className="deploy-launch-card deploy-launch-secondary" href="#container" aria-label="リポジトリの接続">
+                  <span className="deploy-launch-icon deploy-launch-glyph" aria-hidden="true">
+                    <SiGithub />
+                  </span>
+                  <span className="deploy-launch-label">リポジトリの接続</span>
+                </a>
+              </div>
             </section>
           </section>
         ) : route.section === "deploy" ? (
@@ -795,155 +860,7 @@ function App() {
 
             {error ? <p className="status-banner error">{error}</p> : null}
           </form>
-        ) : (
-          <section className="service-rail" aria-label="container-services">
-            {route.selectedServiceName ? (
-              <section className="service-card panel service-detail-card" aria-label="service-detail">
-                {selectedService ? (
-                  <>
-                    <div className="service-detail-head">
-                      <div className="service-detail-title">
-                        <span className={`status-icon ${selectedStatus}`} aria-hidden="true">
-                          {selectedStatus === "ready" ? (
-                            <CheckIcon />
-                          ) : selectedStatus === "loading" ? (
-                            <LoadingIcon />
-                          ) : (
-                            <ErrorIcon />
-                          )}
-                        </span>
-                        <h3>{selectedService.name}</h3>
-                      </div>
-                      <a className="detail-back" href="#services">
-                        一覧に戻る
-                      </a>
-                    </div>
-
-                    <div className="detail-grid">
-                      <div>
-                        <dt>状態</dt>
-                        <dd>{formatServiceStatus(selectedService)}</dd>
-                      </div>
-                      <div>
-                        <dt>イメージ</dt>
-                        <dd>{selectedService.image}</dd>
-                      </div>
-                      <div>
-                        <dt>URL</dt>
-                        <dd>
-                          {selectedService.url ? (
-                            <a href={selectedService.url} target="_blank" rel="noreferrer">
-                              {selectedService.url}
-                            </a>
-                          ) : (
-                            "-"
-                          )}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>作成時刻</dt>
-                        <dd>{selectedService.createdAt ?? "-"}</dd>
-                      </div>
-                    </div>
-
-                    <div className="delete-actions detail-actions">
-                      <button className="pill danger button" type="button" onClick={() => requestDelete(selectedService.name)}>
-                        削除
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="service-detail-head">
-                      <div className="service-detail-title">
-                        <h3>サービスが見つかりません</h3>
-                      </div>
-                      <a className="detail-back" href="#services">
-                        一覧に戻る
-                      </a>
-                    </div>
-                    <p className="service-detail-empty">削除されたか、まだ同期されていません。</p>
-                  </>
-                )}
-              </section>
-            ) : (
-              <section className="service-card panel service-list-card" id="services">
-                <div className="panel-header">
-                  <div>
-                    <p className="panel-kicker">サービス</p>
-                    <h2>デプロイ済みサービス</h2>
-                  </div>
-                </div>
-
-                <div className="service-list-table">
-                  <div className="service-list-head" aria-hidden="true">
-                    <span className="service-list-head-status" />
-                    <span className="service-list-head-main">
-                      <span className="service-list-head-name">名前</span>
-                      <span className="service-list-head-updated">更新日時</span>
-                    </span>
-                  </div>
-
-                  <div className="service-list">
-                    {services.length > 0 ? (
-                      services.map((service) => {
-                        const status = getServiceStatus(service);
-                        return (
-                          <article className="service-row" key={service.name}>
-                            <span className="service-cell service-cell-status" aria-hidden="true">
-                              <span className={`status-icon ${status}`}>
-                                {status === "ready" ? <CheckIcon /> : status === "loading" ? <LoadingIcon /> : <ErrorIcon />}
-                              </span>
-                            </span>
-                            <span className="service-cell service-cell-name">
-                              <a className="service-name-link" href={`#services/${encodeURIComponent(service.name)}`}>
-                                <span className="service-name-text">{service.name}</span>
-                              </a>
-                              <span className="service-updated-inline">
-                                {service.updatedAt || service.createdAt
-                                  ? formatServiceTimestamp(service.updatedAt || service.createdAt || "")
-                                  : "-"}
-                              </span>
-                            </span>
-                          </article>
-                        );
-                      })
-                    ) : (
-                      <div className="empty-state">
-                        <p>{loading ? "読み込み中..." : "まだサービスはありません。"}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            <section className="service-card panel deploy-panel" aria-label="サービスのデプロイ">
-              <div className="panel-header">
-                <div>
-                  <p className="panel-kicker">作成</p>
-                  <h2>サービスのデプロイ</h2>
-                </div>
-              </div>
-
-              <div className="deploy-panel-grid">
-                <a className="deploy-launch-card" href="#deploy" aria-label="コンテナのデプロイ">
-                  <span className="deploy-launch-icon" aria-hidden="true">
-                    <SiDocker />
-                  </span>
-                  <span className="deploy-launch-label">コンテナのデプロイ</span>
-                </a>
-
-                <a className="deploy-launch-card deploy-launch-secondary" href="#services" aria-label="リポジトリの接続">
-                  <span className="deploy-launch-icon deploy-launch-glyph" aria-hidden="true">
-                    <SiGithub />
-                  </span>
-                  <span className="deploy-launch-label">リポジトリの接続</span>
-                </a>
-              </div>
-            </section>
-          </section>
-        )}
+        ) : null}
       </section>
 
       {pendingDeleteName ? (
