@@ -6,6 +6,7 @@ import { Box, Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon, L
 import { alpha } from "@mui/material/styles";
 import { navItems, type RouteState } from "../../types";
 import { Brand } from "./Brand";
+import { shellBrandRowSx } from "./constants";
 
 type DrawerNavProps = {
   onCloseSidebar: () => void;
@@ -24,7 +25,8 @@ export function DrawerNav({ onCloseSidebar, onNavigate, route, sidebarOpen }: Dr
       slotProps={{
         paper: {
           sx: {
-            width: 300,
+            width: { xs: "88vw", sm: 300 },
+            maxWidth: 300,
             borderRadius: "0 16px 16px 0",
             m: 0,
             border: "1px solid rgba(148, 163, 184, 0.24)",
@@ -33,8 +35,8 @@ export function DrawerNav({ onCloseSidebar, onNavigate, route, sidebarOpen }: Dr
         }
       }}
     >
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, p: 2 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minHeight: 40 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: 0, pb: 2, px: 2 }}>
+        <Box sx={shellBrandRowSx}>
           <IconButton onClick={onCloseSidebar} aria-label="close navigation" sx={{ width: 40, height: 40, p: 0, flex: "0 0 auto" }}>
             <CloseIcon />
           </IconButton>
@@ -56,6 +58,7 @@ export function DrawerNav({ onCloseSidebar, onNavigate, route, sidebarOpen }: Dr
                 mb: 1,
                 borderRadius: 1.5,
                 border: "1px solid rgba(148, 163, 184, 0.24)",
+                minHeight: 48,
                 "&.Mui-selected": {
                   bgcolor: alpha("#2563eb", 0.08),
                   borderColor: alpha("#2563eb", 0.28)
@@ -65,7 +68,7 @@ export function DrawerNav({ onCloseSidebar, onNavigate, route, sidebarOpen }: Dr
               <ListItemIcon sx={{ minWidth: 40 }}>
                 {item.id === "home" ? <HomeOutlinedIcon /> : item.id === "container" ? <StorageOutlinedIcon /> : <CloudUploadOutlinedIcon />}
               </ListItemIcon>
-              <ListItemText primary={item.label} />
+              <ListItemText primary={item.label} sx={{ my: 0 }} />
             </ListItemButton>
           ))}
         </List>

@@ -68,7 +68,7 @@ export function HomeSection({
           ) : null}
 
           <Box sx={{ display: "grid", gap: 1 }}>
-            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "minmax(180px, 1fr) minmax(0, 1fr) auto" }, gap: 1.5, px: 1.5, color: "text.secondary", fontSize: 12, fontWeight: 700 }}>
+            <Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: "minmax(180px, 1fr) minmax(0, 1fr) auto", gap: 1.5, px: 1.5, color: "text.secondary", fontSize: 12, fontWeight: 700 }}>
               <Box>名前</Box>
               <Box>ID</Box>
               <Box />

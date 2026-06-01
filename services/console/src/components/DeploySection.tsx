@@ -16,7 +16,7 @@ type DeploySectionProps = {
 
 export function DeploySection({ error, form, onBack, onChange, onSubmit, submitting }: DeploySectionProps) {
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2, maxWidth: 1120 }}>
+    <Card variant="outlined" sx={{ borderRadius: 2, maxWidth: 1120, width: "100%" }}>
       <CardContent sx={{ p: { xs: 2.5, sm: 3 }, display: "grid", gap: 2.5 }}>
         <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
           <Box sx={{ display: "grid", gap: 1 }}>

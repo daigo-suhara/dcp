@@ -124,7 +124,7 @@ export function ContainerSection({
               </Box>
 
               <Box sx={{ display: "grid", gap: 0 }}>
-                <Box sx={{ display: "grid", gridTemplateColumns: "42px minmax(0, 1fr)", alignItems: "center", minHeight: 36, px: 1, color: "text.secondary", fontSize: 11, fontWeight: 700, borderBottom: "1px solid rgba(148, 163, 184, 0.18)" }}>
+                <Box sx={{ display: { xs: "none", sm: "grid" }, gridTemplateColumns: "42px minmax(0, 1fr)", alignItems: "center", minHeight: 36, px: 1, color: "text.secondary", fontSize: 11, fontWeight: 700, borderBottom: "1px solid rgba(148, 163, 184, 0.18)" }}>
                   <Box />
                   <Box sx={{ display: "grid", gridTemplateColumns: "minmax(120px, max-content) 150px", columnGap: 3 }}>
                     <Box>名前</Box>
@@ -143,26 +143,27 @@ export function ContainerSection({
                           variant="outlined"
                           sx={{
                             display: "grid",
-                            gridTemplateColumns: "42px minmax(0, 1fr)",
-                            alignItems: "center",
+                            gridTemplateColumns: { xs: "1fr", sm: "42px minmax(0, 1fr)" },
+                            gap: { xs: 1, sm: 0 },
+                            alignItems: { xs: "start", sm: "center" },
                             minHeight: 44,
-                            px: 1,
+                            p: { xs: 1.25, sm: 0 },
                             borderRadius: 0,
                             borderLeft: 0,
                             borderRight: 0,
                             borderTop: 0
                           }}
                         >
-                          <Box sx={{ display: "grid", placeItems: "center" }}>
+                          <Box sx={{ display: "grid", placeItems: "center", alignSelf: { xs: "start", sm: "center" } }}>
                             <Box sx={{ width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: "999px", bgcolor: status === "ready" ? alpha("#16a34a", 0.12) : status === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: status === "ready" ? "success.main" : status === "loading" ? "primary.main" : "error.main" }}>
                               {statusIcon}
                             </Box>
                           </Box>
-                          <Box sx={{ display: "grid", gridTemplateColumns: "minmax(120px, max-content) 150px", columnGap: 3, alignItems: "center", minWidth: 0 }}>
+                          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "minmax(120px, max-content) 150px" }, columnGap: 3, rowGap: 0.5, alignItems: "center", minWidth: 0 }}>
                             <Button component="a" href={`#container/${encodeURIComponent(service.name)}`} onClick={() => onOpenService(service.name)} sx={{ justifyContent: "flex-start", textAlign: "left", color: "inherit", px: 0, minWidth: 0 }}>
                               <Typography sx={{ fontWeight: 700, wordBreak: "break-all" }}>{service.name}</Typography>
                             </Button>
-                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: { xs: "normal", sm: "nowrap" } }}>
                               {service.updatedAt || service.createdAt ? formatServiceTimestamp(service.updatedAt || service.createdAt || "") : "-"}
                             </Typography>
                           </Box>
