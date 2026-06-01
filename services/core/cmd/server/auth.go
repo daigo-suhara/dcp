@@ -24,7 +24,7 @@ const (
 	authCookieName    = "dcp_session"
 	authStateCookie   = "dcp_auth_state"
 	defaultAuthPath   = "/api/v1/auth/callback"
-	defaultLogoutPath = "/"
+	defaultReturnPath = "/"
 )
 
 var (
@@ -136,7 +136,7 @@ func newKeycloakAuthFromEnv() (*keycloakAuth, error) {
 	}
 	logoutPath := strings.TrimSpace(os.Getenv("DCP_KEYCLOAK_LOGOUT_PATH"))
 	if logoutPath == "" {
-		logoutPath = defaultLogoutPath
+		logoutPath = defaultReturnPath
 	}
 	sessionSecret := strings.TrimSpace(os.Getenv("DCP_SESSION_SECRET"))
 	if sessionSecret == "" {
@@ -226,13 +226,13 @@ func (a *keycloakAuth) Logout(w http.ResponseWriter, r *http.Request) error {
 
 	discovery, err := a.discoveryDocument(r.Context(), a.keycloakBaseURL(r))
 	if err != nil {
-		http.Redirect(w, r, a.returnToURL(r, defaultLogoutPath), http.StatusSeeOther)
+		http.Redirect(w, r, a.returnToURL(r, defaultReturnPath), http.StatusSeeOther)
 		return nil
 	}
 
 	logoutURL, err := url.Parse(discovery.EndSessionEndpoint)
 	if err != nil {
-		http.Redirect(w, r, a.returnToURL(r, defaultLogoutPath), http.StatusSeeOther)
+		http.Redirect(w, r, a.returnToURL(r, defaultReturnPath), http.StatusSeeOther)
 		return nil
 	}
 	q := logoutURL.Query()
@@ -284,7 +284,7 @@ func (a *keycloakAuth) beginAuth(w http.ResponseWriter, r *http.Request, mode st
 		State:        stateValue,
 		Nonce:        nonce,
 		CodeVerifier: codeVerifier,
-		ReturnTo:     a.returnToURL(r, defaultLogoutPath),
+		ReturnTo:     defaultReturnPath,
 		Mode:         mode,
 		ExpiresAt:    time.Now().UTC().Add(10 * time.Minute).Unix(),
 	}
