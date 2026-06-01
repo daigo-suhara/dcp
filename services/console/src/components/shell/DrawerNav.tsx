@@ -35,10 +35,10 @@ export function DrawerNav({ onCloseSidebar, onNavigate, route, sidebarOpen }: Dr
     >
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, p: 2 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minHeight: 40 }}>
-          <IconButton edge="start" onClick={onCloseSidebar} aria-label="close navigation" sx={{ width: 40, height: 40, p: 0 }}>
+          <IconButton onClick={onCloseSidebar} aria-label="close navigation" sx={{ width: 40, height: 40, p: 0, flex: "0 0 auto" }}>
             <CloseIcon />
           </IconButton>
-          <Brand compact />
+          <Brand />
         </Box>
         <Divider />
         <List disablePadding>
@@ -73,4 +73,3 @@ export function DrawerNav({ onCloseSidebar, onNavigate, route, sidebarOpen }: Dr
     </Drawer>
   );
 }
-

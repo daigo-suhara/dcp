@@ -26,8 +26,8 @@ export function Header({ activeProjectId, hasProjects, onLogout, onProjectSelect
         borderBottom: "1px solid rgba(148, 163, 184, 0.18)"
       }}
     >
-      <Toolbar sx={{ gap: 1.5, minHeight: 64 }}>
-        <IconButton edge="start" onClick={onToggleSidebar} aria-label="navigation">
+      <Toolbar disableGutters sx={{ gap: 1.5, minHeight: 64, px: 2 }}>
+        <IconButton onClick={onToggleSidebar} aria-label="navigation" sx={{ width: 40, height: 40, p: 0, flex: "0 0 auto" }}>
           <MenuIcon />
         </IconButton>
         <Brand />
@@ -54,4 +54,3 @@ export function Header({ activeProjectId, hasProjects, onLogout, onProjectSelect
     </AppBar>
   );
 }
-
