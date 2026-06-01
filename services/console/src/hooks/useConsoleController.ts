@@ -136,6 +136,10 @@ export function useConsoleController() {
     }
   }
 
+  function handleOpenService(name: string) {
+    window.location.hash = `#container/${encodeURIComponent(name)}`;
+  }
+
   function handleFormChange(patch: Partial<typeof form>) {
     setForm((current) => ({ ...current, ...patch }));
   }
@@ -254,6 +258,7 @@ export function useConsoleController() {
       }
       if ("name" in data) {
         setMessage(`${data.name} を作成しました`);
+        handleOpenService(data.name);
       }
       setForm((current) => ({ ...current, name: "hello-dcp", minScale: "0", maxScale: "1" }));
       await loadServices();
@@ -347,6 +352,7 @@ export function useConsoleController() {
     handleCreateProject,
     handleFormChange,
     handleProjectSelect,
+    handleOpenService,
     handleSubmit,
     loadCurrentUser,
     loading,
@@ -374,4 +380,3 @@ export function useConsoleController() {
     setMessage
   } as const;
 }
-

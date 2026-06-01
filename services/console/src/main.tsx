@@ -81,7 +81,7 @@ function App() {
             onBackToList={() => (window.location.hash = "#container")}
             onDeployClick={() => (window.location.hash = "#deploy")}
             onDeleteService={controller.requestDelete}
-            onOpenService={() => undefined}
+            onOpenService={controller.handleOpenService}
             onRepoConnectClick={() => (window.location.hash = "#container")}
             selectedService={controller.selectedService}
             selectedStatus={controller.selectedStatus}
@@ -91,7 +91,7 @@ function App() {
           <DeploySection
             error={controller.error}
             form={controller.form}
-            onBack={() => (window.location.hash = "#home")}
+            onBack={() => (window.location.hash = "#container")}
             onChange={controller.handleFormChange}
             onSubmit={controller.handleSubmit}
             submitting={controller.submitting}
