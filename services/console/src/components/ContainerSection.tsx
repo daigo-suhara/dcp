@@ -49,14 +49,14 @@ export function ContainerSection({
           <Card variant="outlined" sx={{ borderRadius: 2 }}>
             <CardContent sx={{ p: 3, display: "grid", gap: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
-                  <Box sx={{ width: 34, height: 34, borderRadius: "999px", display: "grid", placeItems: "center", bgcolor: selectedStatus === "ready" ? alpha("#16a34a", 0.12) : selectedStatus === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: selectedStatus === "ready" ? "success.main" : selectedStatus === "loading" ? "primary.main" : "error.main" }}>
-                    {selectedStatusIcon}
-                  </Box>
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="overline" color="primary">
-                      サービス詳細
-                    </Typography>
+                <Box sx={{ display: "grid", gap: 0.75, minWidth: 0 }}>
+                  <Typography variant="overline" color="primary">
+                    サービス詳細
+                  </Typography>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
+                    <Box sx={{ width: 34, height: 34, borderRadius: "999px", display: "grid", placeItems: "center", bgcolor: selectedStatus === "ready" ? alpha("#16a34a", 0.12) : selectedStatus === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: selectedStatus === "ready" ? "success.main" : selectedStatus === "loading" ? "primary.main" : "error.main" }}>
+                      {selectedStatusIcon}
+                    </Box>
                     <Typography variant="h5" sx={{ fontWeight: 700, wordBreak: "break-word" }}>
                       {selectedService.name}
                     </Typography>
