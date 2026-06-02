@@ -22,13 +22,17 @@ data:
   realm.json: |
     {
       "realm": {{ .Values.keycloak.realm | default "dcp" | quote }},
+      "displayName": {{ .Values.keycloak.displayName | default "Asagiri Cloud" | quote }},
       "enabled": true,
       "registrationAllowed": true,
+      "internationalizationEnabled": true,
+      "supportedLocales": ["en", "ja"],
+      "defaultLocale": "ja",
       "loginTheme": {{ .Values.keycloak.loginTheme | default "dcp" | quote }},
       "clients": [
         {
           "clientId": {{ .Values.keycloak.clientId | default "dcp-core" | quote }},
-          "name": "DCP Core",
+          "name": {{ .Values.keycloak.clientName | default "Asagiri Cloud Core" | quote }},
           "enabled": true,
           "publicClient": true,
           "standardFlowEnabled": true,
@@ -55,7 +59,18 @@ metadata:
 data:
   theme.properties: |
     parent=keycloak
+    locales=en,ja
     styles=css/login.css css/dcp.css
+  messages_ja.properties: |
+    loginAccountTitle=Asagiri Cloud にログイン
+    doLogIn=ログイン
+    doRegister=ユーザー登録
+    usernameOrEmail=ユーザー名またはメールアドレス
+    password=パスワード
+    rememberMe=ログイン状態を保持
+    doForgotPassword=パスワードを忘れた場合
+    noAccount=アカウントをお持ちでない場合は
+    identity-provider-login-label=または外部アカウントでログイン
   dcp.css: |
     .login-pf body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -303,6 +318,8 @@ spec:
             items:
               - key: theme.properties
                 path: dcp/login/theme.properties
+              - key: messages_ja.properties
+                path: dcp/login/messages/messages_ja.properties
               - key: dcp.css
                 path: dcp/login/resources/css/dcp.css
 ---
