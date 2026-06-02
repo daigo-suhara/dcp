@@ -17,7 +17,7 @@ export function AuthScreen({ error, onLogin, onRegister }: AuthScreenProps) {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
                 <CloudQueueOutlinedIcon sx={{ fontSize: 28, color: "primary.main" }} />
                 <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1 }}>
-                  D Cloud Console
+                  Asagiri Cloud Console
                 </Typography>
               </Box>
 
