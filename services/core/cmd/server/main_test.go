@@ -246,7 +246,7 @@ func TestAuthFlow(t *testing.T) {
 	auth := testAuth()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(testSessionCookie(t, auth, authUser{ID: "alice-id", Username: "alice"}))
-	got, err := auth.CurrentUser(req)
+	got, err := auth.CurrentUser(httptest.NewRecorder(), req)
 	if err != nil {
 		t.Fatalf("current user: %v", err)
 	}

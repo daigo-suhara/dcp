@@ -89,11 +89,13 @@ type authState struct {
 }
 
 type sessionEnvelope struct {
-	ID        string `json:"id"`
-	Username  string `json:"username"`
-	Email     string `json:"email,omitempty"`
-	Name      string `json:"name,omitempty"`
-	ExpiresAt int64  `json:"expiresAt"`
+	ID               string `json:"id"`
+	Username         string `json:"username"`
+	Email            string `json:"email,omitempty"`
+	Name             string `json:"name,omitempty"`
+	ExpiresAt        int64  `json:"expiresAt"`
+	RefreshToken     string `json:"refreshToken,omitempty"`
+	RefreshExpiresAt int64  `json:"refreshExpiresAt,omitempty"`
 }
 
 type idTokenClaims struct {
@@ -108,11 +110,12 @@ type idTokenClaims struct {
 }
 
 type tokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	IDToken      string `json:"id_token"`
-	RefreshToken string `json:"refresh_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
+	AccessToken      string `json:"access_token"`
+	IDToken          string `json:"id_token"`
+	RefreshToken     string `json:"refresh_token"`
+	TokenType        string `json:"token_type"`
+	ExpiresIn        int    `json:"expires_in"`
+	RefreshExpiresIn int    `json:"refresh_expires_in"`
 }
 
 type idTokenHeader struct {
@@ -209,7 +212,7 @@ func (a *keycloakAuth) Callback(w http.ResponseWriter, r *http.Request) error {
 		Email:    claims.Email,
 		Name:     claims.Name,
 	}
-	if err := a.setSessionCookie(w, user, claims.Exp, isSecureRequest(r)); err != nil {
+	if err := a.setSessionCookie(w, user, token, claims.Exp, isSecureRequest(r)); err != nil {
 		return err
 	}
 	http.SetCookie(w, clearAuthStateCookie(isSecureRequest(r)))
@@ -243,7 +246,7 @@ func (a *keycloakAuth) Logout(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (a *keycloakAuth) CurrentUser(r *http.Request) (authUser, error) {
+func (a *keycloakAuth) CurrentUser(w http.ResponseWriter, r *http.Request) (authUser, error) {
 	cookie, err := r.Cookie(authCookieName)
 	if err != nil || cookie.Value == "" {
 		return authUser{}, errSessionNotFound
@@ -252,12 +255,50 @@ func (a *keycloakAuth) CurrentUser(r *http.Request) (authUser, error) {
 	if err != nil {
 		return authUser{}, err
 	}
+	if session.ExpiresAt > 0 && time.Now().UTC().Unix() > session.ExpiresAt {
+		return a.refreshCurrentUser(w, r, session)
+	}
 	return authUser{
 		ID:       session.ID,
 		Username: session.Username,
 		Email:    session.Email,
 		Name:     session.Name,
 	}, nil
+}
+
+func (a *keycloakAuth) refreshCurrentUser(w http.ResponseWriter, r *http.Request, session sessionEnvelope) (authUser, error) {
+	if session.RefreshToken == "" {
+		return authUser{}, errAuthExpired
+	}
+	if session.RefreshExpiresAt > 0 && time.Now().UTC().Unix() > session.RefreshExpiresAt {
+		return authUser{}, errAuthExpired
+	}
+
+	discovery, err := a.discoveryDocument(r.Context(), a.keycloakBaseURL(r))
+	if err != nil {
+		return authUser{}, err
+	}
+	token, err := a.refreshToken(r, discovery.TokenEndpoint, session.RefreshToken)
+	if err != nil {
+		return authUser{}, err
+	}
+	claims, err := a.verifyIDToken(discovery, token.IDToken, "")
+	if err != nil {
+		return authUser{}, err
+	}
+	if token.RefreshToken == "" {
+		token.RefreshToken = session.RefreshToken
+	}
+	if token.RefreshExpiresIn <= 0 && session.RefreshExpiresAt > 0 {
+		token.RefreshExpiresIn = int(time.Until(time.Unix(session.RefreshExpiresAt, 0)).Seconds())
+	}
+	user := authUser{
+		ID:       claims.Sub,
+		Username: firstNonEmpty(claims.PreferredUsername, claims.Email, claims.Name, claims.Sub),
+		Email:    claims.Email,
+		Name:     claims.Name,
+	}
+	return user, a.setSessionCookie(w, user, token, claims.Exp, isSecureRequest(r))
 }
 
 func (a *keycloakAuth) beginAuth(w http.ResponseWriter, r *http.Request, mode string) error {
@@ -341,6 +382,39 @@ func (a *keycloakAuth) exchangeCode(r *http.Request, tokenEndpoint, code, codeVe
 	}
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return tokenResponse{}, fmt.Errorf("Keycloak での認証に失敗しました")
+	}
+	if payload.IDToken == "" {
+		return tokenResponse{}, fmt.Errorf("IDトークンが返されませんでした")
+	}
+	return payload, nil
+}
+
+func (a *keycloakAuth) refreshToken(r *http.Request, tokenEndpoint, refreshToken string) (tokenResponse, error) {
+	form := url.Values{}
+	form.Set("grant_type", "refresh_token")
+	form.Set("client_id", a.clientID)
+	form.Set("refresh_token", refreshToken)
+	if a.clientSecret != "" {
+		form.Set("client_secret", a.clientSecret)
+	}
+
+	req, err := http.NewRequestWithContext(r.Context(), http.MethodPost, tokenEndpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return tokenResponse{}, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	res, err := a.client.Do(req)
+	if err != nil {
+		return tokenResponse{}, err
+	}
+	defer res.Body.Close()
+
+	var payload tokenResponse
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		return tokenResponse{}, fmt.Errorf("トークン応答を読み取れませんでした")
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return tokenResponse{}, fmt.Errorf("Keycloak のセッションを更新できませんでした")
 	}
 	if payload.IDToken == "" {
 		return tokenResponse{}, fmt.Errorf("IDトークンが返されませんでした")
@@ -456,13 +530,19 @@ func (a *keycloakAuth) discoveryDocument(ctx context.Context, baseURL string) (*
 	return &discovery, nil
 }
 
-func (a *keycloakAuth) setSessionCookie(w http.ResponseWriter, user authUser, exp int64, secure bool) error {
+func (a *keycloakAuth) setSessionCookie(w http.ResponseWriter, user authUser, token tokenResponse, exp int64, secure bool) error {
+	refreshExpiresAt := time.Now().UTC().Add(time.Duration(token.RefreshExpiresIn) * time.Second).Unix()
+	if token.RefreshExpiresIn <= 0 {
+		refreshExpiresAt = exp
+	}
 	session := sessionEnvelope{
-		ID:        user.ID,
-		Username:  user.Username,
-		Email:     user.Email,
-		Name:      user.Name,
-		ExpiresAt: exp,
+		ID:               user.ID,
+		Username:         user.Username,
+		Email:            user.Email,
+		Name:             user.Name,
+		ExpiresAt:        exp,
+		RefreshToken:     token.RefreshToken,
+		RefreshExpiresAt: refreshExpiresAt,
 	}
 	value, err := a.signPayload(session)
 	if err != nil {
@@ -475,7 +555,7 @@ func (a *keycloakAuth) setSessionCookie(w http.ResponseWriter, user authUser, ex
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   secure,
-		MaxAge:   max(1, int(time.Until(time.Unix(exp, 0)).Seconds())),
+		MaxAge:   max(1, int(time.Until(time.Unix(refreshExpiresAt, 0)).Seconds())),
 	}
 	http.SetCookie(w, cookie)
 	return nil
@@ -528,9 +608,6 @@ func (a *keycloakAuth) decodeSession(value string) (sessionEnvelope, error) {
 	var payload sessionEnvelope
 	if err := a.verifyPayload(value, &payload); err != nil {
 		return sessionEnvelope{}, err
-	}
-	if payload.ExpiresAt > 0 && time.Now().UTC().Unix() > payload.ExpiresAt {
-		return sessionEnvelope{}, errAuthExpired
 	}
 	return payload, nil
 }

@@ -204,7 +204,7 @@ func platform(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiServer) me(w http.ResponseWriter, r *http.Request) {
-	user, err := a.currentUser(r)
+	user, err := a.currentUser(w, r)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "ログインしてください"})
 		return
@@ -262,7 +262,7 @@ func (a *apiServer) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiServer) listProjects(w http.ResponseWriter, r *http.Request) {
-	userID, err := a.currentUserID(r)
+	userID, err := a.currentUserID(w, r)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "ログインしてください"})
 		return
@@ -287,7 +287,7 @@ func (a *apiServer) listProjects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiServer) createProject(w http.ResponseWriter, r *http.Request) {
-	userID, err := a.currentUserID(r)
+	userID, err := a.currentUserID(w, r)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "ログインしてください"})
 		return
@@ -316,7 +316,7 @@ func (a *apiServer) createProject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiServer) deleteProject(w http.ResponseWriter, r *http.Request) {
-	userID, err := a.currentUserID(r)
+	userID, err := a.currentUserID(w, r)
 	if err != nil {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "ログインしてください"})
 		return
@@ -359,7 +359,7 @@ func (a *apiServer) listServices(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	scope, err := a.projectScopeFromRequest(r)
+	scope, err := a.projectScopeFromRequest(w, r)
 	if err != nil {
 		writeJSON(w, statusForScopeError(err), map[string]string{"error": err.Error()})
 		return
@@ -390,7 +390,7 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	scope, err := a.projectScopeFromRequest(r)
+	scope, err := a.projectScopeFromRequest(w, r)
 	if err != nil {
 		writeJSON(w, statusForScopeError(err), map[string]string{"error": err.Error()})
 		return
@@ -438,7 +438,7 @@ func (a *apiServer) deleteService(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	scope, err := a.projectScopeFromRequest(r)
+	scope, err := a.projectScopeFromRequest(w, r)
 	if err != nil {
 		writeJSON(w, statusForScopeError(err), map[string]string{"error": err.Error()})
 		return
@@ -482,7 +482,7 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		userID, err := a.currentUserID(r)
+		userID, err := a.currentUserID(w, r)
 		if err != nil {
 			http.Error(w, "ログインしてください", http.StatusUnauthorized)
 			return
@@ -668,8 +668,8 @@ func validateDeployRequest(req deployRequest) error {
 	return nil
 }
 
-func (a *apiServer) projectScopeFromRequest(r *http.Request) (projectScope, error) {
-	userID, err := a.currentUserID(r)
+func (a *apiServer) projectScopeFromRequest(w http.ResponseWriter, r *http.Request) (projectScope, error) {
+	userID, err := a.currentUserID(w, r)
 	if err != nil {
 		return projectScope{}, err
 	}
@@ -695,15 +695,15 @@ func (a *apiServer) projectScopeFromRequest(r *http.Request) (projectScope, erro
 	return projectScope{UserID: userID, ProjectID: p.ID}, nil
 }
 
-func (a *apiServer) currentUser(r *http.Request) (authUser, error) {
+func (a *apiServer) currentUser(w http.ResponseWriter, r *http.Request) (authUser, error) {
 	if a.auth == nil {
 		return authUser{}, fmt.Errorf("認証機能を利用できません")
 	}
-	return a.auth.CurrentUser(r)
+	return a.auth.CurrentUser(w, r)
 }
 
-func (a *apiServer) currentUserID(r *http.Request) (string, error) {
-	user, err := a.currentUser(r)
+func (a *apiServer) currentUserID(w http.ResponseWriter, r *http.Request) (string, error) {
+	user, err := a.currentUser(w, r)
 	if err != nil {
 		return "", err
 	}
