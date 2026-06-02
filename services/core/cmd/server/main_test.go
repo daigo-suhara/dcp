@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/daigo-suhara/dcp/services/core/internal/userserviceroute"
 )
 
 const testUUID = "11111111-1111-4111-8111-111111111111"
@@ -199,25 +201,23 @@ func TestDeleteService(t *testing.T) {
 	}
 }
 
-func TestPublicServiceURLUsesConfiguredDomain(t *testing.T) {
+func TestUserServiceURLUsesConfiguredDomain(t *testing.T) {
 	t.Setenv("DCP_PUBLIC_SERVICE_DOMAIN", "apps.example.com")
 
-	req := httptest.NewRequest(http.MethodGet, "http://console.example.com/api/v1/services", nil)
-	got := publicServiceURL(req, "default-project", "hello-dcp")
+	got := userserviceroute.UserServiceURL("https://console.example.com", "apps.example.com", "default-project", "hello-dcp")
 
 	if got != "https://hello-dcp.apps.example.com/" {
 		t.Fatalf("expected host-based public url, got %q", got)
 	}
 }
 
-func TestServiceNameFromHost(t *testing.T) {
+func TestUserServiceNameFromHost(t *testing.T) {
 	t.Setenv("DCP_PUBLIC_SERVICE_DOMAIN", "apps.example.com")
-	api := &apiServer{}
 
 	req := httptest.NewRequest(http.MethodGet, "http://hello-dcp.apps.example.com/", nil)
 	req.Header.Set("X-Forwarded-Host", "hello-dcp.apps.example.com")
 
-	if got := api.serviceNameFromHost(req); got != "hello-dcp" {
+	if got := userserviceroute.UserServiceNameFromHost(req, "apps.example.com"); got != "hello-dcp" {
 		t.Fatalf("expected service name hello-dcp, got %q", got)
 	}
 }

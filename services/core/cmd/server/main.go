@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/daigo-suhara/dcp/services/core/internal/userserviceroute"
 )
 
 type healthResponse struct {
@@ -516,7 +517,7 @@ func (a *apiServer) proxyService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := a.serviceNameFromHost(r)
+	name := userserviceroute.UserServiceNameFromHost(r, strings.TrimSpace(os.Getenv("DCP_PUBLIC_SERVICE_DOMAIN")))
 	if name == "" {
 		http.NotFound(w, r)
 		return
@@ -539,7 +540,7 @@ func (a *apiServer) setPublicURLs(r *http.Request, services []deployedService) {
 }
 
 func (a *apiServer) setPublicURL(r *http.Request, service *deployedService) {
-	service.URL = publicServiceURL(r, service.ProjectID, service.Name)
+	service.URL = userserviceroute.UserServiceURL(publicBaseURL(r), strings.TrimSpace(os.Getenv("DCP_PUBLIC_SERVICE_DOMAIN")), service.ProjectID, service.Name)
 }
 
 func (a *apiServer) proxyToTarget(w http.ResponseWriter, r *http.Request, targetURL string, path string, name string) {
@@ -586,32 +587,6 @@ func (a *apiServer) proxyToTarget(w http.ResponseWriter, r *http.Request, target
 	}
 }
 
-func (a *apiServer) serviceNameFromHost(r *http.Request) string {
-	domain := strings.TrimSpace(os.Getenv("DCP_PUBLIC_SERVICE_DOMAIN"))
-	if domain == "" {
-		return ""
-	}
-
-	host := requestHost(r)
-	if host == "" {
-		return ""
-	}
-	host = strings.ToLower(host)
-	domain = strings.ToLower(strings.TrimSuffix(domain, "."))
-	if host == domain {
-		return ""
-	}
-	if !strings.HasSuffix(host, "."+domain) {
-		return ""
-	}
-
-	name := strings.TrimSuffix(host, "."+domain)
-	if name == "" || strings.Contains(name, ".") || !isDNSLabel(name) {
-		return ""
-	}
-	return name
-}
-
 func publicBaseURL(r *http.Request) string {
 	proto := r.Header.Get("X-Forwarded-Proto")
 	if proto == "" {
@@ -622,34 +597,6 @@ func publicBaseURL(r *http.Request) string {
 		host = r.Host
 	}
 	return fmt.Sprintf("%s://%s", proto, host)
-}
-
-func publicServiceURL(r *http.Request, projectID string, name string) string {
-	domain := strings.TrimSpace(os.Getenv("DCP_PUBLIC_SERVICE_DOMAIN"))
-	if domain != "" {
-		domain = strings.TrimSuffix(domain, ".")
-		return fmt.Sprintf("https://%s.%s/", name, domain)
-	}
-	if projectID == "" {
-		return fmt.Sprintf("%s/services/%s/", publicBaseURL(r), name)
-	}
-	return fmt.Sprintf("%s/cloudrun/%s/%s/", publicBaseURL(r), projectID, name)
-}
-
-func requestHost(r *http.Request) string {
-	host := strings.TrimSpace(r.Header.Get("X-Forwarded-Host"))
-	if host == "" {
-		host = strings.TrimSpace(r.Host)
-	}
-	if host == "" {
-		return ""
-	}
-	if strings.Contains(host, ":") {
-		if h, _, err := net.SplitHostPort(host); err == nil {
-			host = h
-		}
-	}
-	return strings.TrimSpace(host)
 }
 
 var proxyHTTPClient = &http.Client{Timeout: 30 * time.Second}

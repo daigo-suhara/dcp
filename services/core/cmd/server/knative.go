@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/daigo-suhara/dcp/services/core/internal/userserviceroute"
 )
 
 const (
@@ -135,7 +137,7 @@ func (m *knativeServiceManager) List(ctx context.Context, scope projectScope) ([
 			ProjectID:  item.Metadata.Labels[projectLabelKey],
 			Generation: item.Metadata.Generation,
 			CreatedAt:  item.Metadata.CreationTimestamp.UTC().Format(time.RFC3339),
-			URL:        servicePublicURL(item.Metadata.Labels[projectLabelKey], item.Metadata.Name),
+			URL:        userserviceroute.UserServiceURL("", strings.TrimSpace(os.Getenv("DCP_PUBLIC_SERVICE_DOMAIN")), item.Metadata.Labels[projectLabelKey], item.Metadata.Name),
 		}
 		if len(item.Spec.Template.Spec.Containers) > 0 {
 			service.Image = item.Spec.Template.Spec.Containers[0].Image
@@ -406,7 +408,7 @@ func decodeService(res *http.Response, scope projectScope) (deployedService, err
 		ProjectID:  payload.Metadata.Labels[projectLabelKey],
 		Generation: payload.Metadata.Generation,
 		CreatedAt:  payload.Metadata.CreationTimestamp.UTC().Format(time.RFC3339),
-		URL:        servicePublicURL(payload.Metadata.Labels[projectLabelKey], payload.Metadata.Name),
+		URL:        userserviceroute.UserServiceURL("", strings.TrimSpace(os.Getenv("DCP_PUBLIC_SERVICE_DOMAIN")), payload.Metadata.Labels[projectLabelKey], payload.Metadata.Name),
 	}
 	if len(payload.Spec.Template.Spec.Containers) > 0 {
 		service.Image = payload.Spec.Template.Spec.Containers[0].Image
@@ -426,17 +428,6 @@ func decodeService(res *http.Response, scope projectScope) (deployedService, err
 	}
 
 	return service, nil
-}
-
-func servicePublicURL(projectID string, name string) string {
-	domain := strings.TrimSpace(os.Getenv("DCP_PUBLIC_SERVICE_DOMAIN"))
-	if domain != "" {
-		return fmt.Sprintf("https://%s.%s/", name, strings.TrimSuffix(domain, "."))
-	}
-	if projectID == "" {
-		return fmt.Sprintf("/services/%s/", name)
-	}
-	return fmt.Sprintf("/cloudrun/%s/%s/", projectID, name)
 }
 
 func (m *knativeServiceManager) authorize(req *http.Request) {
