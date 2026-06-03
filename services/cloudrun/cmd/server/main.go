@@ -18,7 +18,7 @@ type healthResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
-type cloudRunService struct {
+type containerAppService struct {
 	Name      string `json:"name"`
 	Image     string `json:"image"`
 	Region    string `json:"region"`
@@ -95,7 +95,7 @@ func readyz(w http.ResponseWriter, r *http.Request) {
 }
 
 func listServices(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string][]cloudRunService{
+	writeJSON(w, http.StatusOK, map[string][]containerAppService{
 		"services": {
 			{
 				Name:      "hello-dcp",

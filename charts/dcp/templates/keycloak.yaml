@@ -22,7 +22,7 @@ data:
   realm.json: |
     {
       "realm": {{ .Values.keycloak.realm | default "dcp" | quote }},
-      "displayName": {{ .Values.keycloak.displayName | default "Asagiri Cloud" | quote }},
+      "displayName": {{ .Values.keycloak.displayName | default "D Cloud" | quote }},
       "enabled": true,
       "registrationAllowed": true,
       "internationalizationEnabled": true,
@@ -32,7 +32,7 @@ data:
       "clients": [
         {
           "clientId": {{ .Values.keycloak.clientId | default "dcp-core" | quote }},
-          "name": {{ .Values.keycloak.clientName | default "Asagiri Cloud Core" | quote }},
+          "name": {{ .Values.keycloak.clientName | default "D Cloud Core" | quote }},
           "enabled": true,
           "publicClient": true,
           "standardFlowEnabled": true,
@@ -62,7 +62,7 @@ data:
     locales=en,ja
     styles=css/login.css css/dcp.css
   messages_ja.properties: |
-    loginAccountTitle=Asagiri Cloud にログイン
+    loginAccountTitle=D Cloud にログイン
     doLogIn=ログイン
     doRegister=ユーザー登録
     usernameOrEmail=ユーザー名またはメールアドレス

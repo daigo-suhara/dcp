@@ -50,9 +50,9 @@ keycloak:
   baseUrl: ""
   hostnameUrl: "https://cloud.daigo-suhara.com/keycloak"
   realm: dcp
-  displayName: Asagiri Cloud
+  displayName: D Cloud
   clientId: dcp-core
-  clientName: Asagiri Cloud Core
+  clientName: D Cloud Core
   clientSecret: ""
   loginTheme: dcp
   sessionSecret: dcp-session-secret-change-me

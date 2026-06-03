@@ -10,7 +10,7 @@ export function LoadingScreen() {
               <CircularProgress />
               <Box>
                 <Typography variant="overline" color="primary">
-                  Asagiri Cloud Console
+                  D Cloud Console
                 </Typography>
                 <Typography variant="h4" sx={{ mt: 1, fontWeight: 700 }}>
                   認証状態を確認しています

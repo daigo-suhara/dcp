@@ -37,7 +37,7 @@ func TestListServices(t *testing.T) {
 	}
 
 	var got struct {
-		Services []cloudRunService `json:"services"`
+		Services []containerAppService `json:"services"`
 	}
 	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
 		t.Fatalf("decode response: %v", err)
