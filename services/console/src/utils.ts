@@ -30,6 +30,9 @@ export function getServiceStatus(service: DeployedService) {
   }
 
   const reason = service.reason?.toLowerCase() ?? "";
+  if (!reason) {
+    return "loading" as const;
+  }
   if (
     reason.includes("pending") ||
     reason.includes("loading") ||
