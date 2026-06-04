@@ -531,18 +531,16 @@ func (a *keycloakAuth) discoveryDocument(ctx context.Context, baseURL string) (*
 }
 
 func (a *keycloakAuth) setSessionCookie(w http.ResponseWriter, user authUser, token tokenResponse, exp int64, secure bool) error {
-	refreshExpiresAt := time.Now().UTC().Add(time.Duration(token.RefreshExpiresIn) * time.Second).Unix()
-	if token.RefreshExpiresIn <= 0 {
-		refreshExpiresAt = exp
-	}
 	session := sessionEnvelope{
-		ID:               user.ID,
-		Username:         user.Username,
-		Email:            user.Email,
-		Name:             user.Name,
-		ExpiresAt:        exp,
-		RefreshToken:     token.RefreshToken,
-		RefreshExpiresAt: refreshExpiresAt,
+		ID:           user.ID,
+		Username:     user.Username,
+		Email:        user.Email,
+		Name:         user.Name,
+		ExpiresAt:    exp,
+		RefreshToken: token.RefreshToken,
+	}
+	if token.RefreshExpiresIn > 0 {
+		session.RefreshExpiresAt = time.Now().UTC().Add(time.Duration(token.RefreshExpiresIn) * time.Second).Unix()
 	}
 	value, err := a.signPayload(session)
 	if err != nil {
@@ -555,7 +553,9 @@ func (a *keycloakAuth) setSessionCookie(w http.ResponseWriter, user authUser, to
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   secure,
-		MaxAge:   max(1, int(time.Until(time.Unix(refreshExpiresAt, 0)).Seconds())),
+	}
+	if session.RefreshExpiresAt > 0 {
+		cookie.MaxAge = max(1, int(time.Until(time.Unix(session.RefreshExpiresAt, 0)).Seconds()))
 	}
 	http.SetCookie(w, cookie)
 	return nil
