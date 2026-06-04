@@ -227,7 +227,7 @@ export function ContainerSection({
                             <Button component="a" href={`#container/${encodeURIComponent(service.name)}`} onClick={() => onOpenService(service.name)} sx={{ justifyContent: "flex-start", textAlign: "left", color: "inherit", px: 0, minWidth: 0 }}>
                               <Typography sx={{ fontWeight: 700, wordBreak: "break-all" }}>{service.name}</Typography>
                             </Button>
-                            <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: { xs: "normal", sm: "nowrap" } }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ display: { xs: "none", sm: "block" }, whiteSpace: { xs: "normal", sm: "nowrap" } }}>
                               {service.updatedAt || service.createdAt ? formatServiceTimestamp(service.updatedAt || service.createdAt || "") : "-"}
                             </Typography>
                           </Box>
