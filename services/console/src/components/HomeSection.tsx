@@ -68,8 +68,8 @@ export function HomeSection({
                 <TableRow>
                   <TableCell sx={{ width: 56 }} />
                   <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>名前</TableCell>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>ID</TableCell>
-                  <TableCell sx={{ width: 120 }} />
+                  <TableCell sx={{ display: { xs: "none", sm: "table-cell" }, fontSize: 12, fontWeight: 700, color: "text.secondary" }}>ID</TableCell>
+                  <TableCell sx={{ width: { xs: 92, sm: 120 } }} />
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -93,7 +93,7 @@ export function HomeSection({
                     <TableCell sx={{ py: 1.25 }}>
                       <Typography sx={{ fontWeight: 700 }}>{project.name}</Typography>
                     </TableCell>
-                    <TableCell sx={{ py: 1.25 }}>
+                    <TableCell sx={{ display: { xs: "none", sm: "table-cell" }, py: 1.25 }}>
                       <Typography variant="body2" color="text.secondary" sx={{ wordBreak: "break-all" }}>
                         {project.id}
                       </Typography>
@@ -106,6 +106,7 @@ export function HomeSection({
                         disabled={!canDelete || deletingProjectId === project.id}
                         onClick={() => onRequestDeleteProject(project.id)}
                         fullWidth
+                        size="small"
                       >
                         {deletingProjectId === project.id ? "削除中..." : "削除"}
                       </Button>
