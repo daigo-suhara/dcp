@@ -53,7 +53,7 @@ export function ContainerSection({
                     サービス詳細
                   </Typography>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
-                    <Box sx={{ width: 34, height: 34, borderRadius: "999px", display: "grid", placeItems: "center", bgcolor: selectedStatus === "ready" ? alpha("#16a34a", 0.12) : selectedStatus === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: selectedStatus === "ready" ? "success.main" : selectedStatus === "loading" ? "primary.main" : "error.main" }}>
+                    <Box sx={{ width: 34, height: 34, borderRadius: "999px", display: "grid", placeItems: "center", bgcolor: selectedStatus === "ready" ? "transparent" : selectedStatus === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: selectedStatus === "ready" ? "success.main" : selectedStatus === "loading" ? "primary.main" : "error.main" }}>
                       {selectedStatusIcon}
                     </Box>
                     <Typography variant="h5" sx={{ fontWeight: 700, wordBreak: "break-word" }}>
@@ -71,11 +71,7 @@ export function ContainerSection({
                   <Typography variant="caption" color="text.secondary">
                     状態
                   </Typography>
-                  <Box component="ul" sx={{ m: 0.5, pl: 2.25 }}>
-                    <Box component="li" sx={{ fontWeight: 600 }}>
-                      {formatServiceStatus(selectedService)}
-                    </Box>
-                  </Box>
+                  <Typography sx={{ mt: 0.5, fontWeight: 600 }}>{formatServiceStatus(selectedService)}</Typography>
                 </Paper>
                 <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, bgcolor: "grey.50" }}>
                   <Typography variant="caption" color="text.secondary">
@@ -173,7 +169,7 @@ export function ContainerSection({
                           }}
                         >
                           <Box sx={{ display: "grid", placeItems: "center", alignSelf: { xs: "start", sm: "center" } }}>
-                            <Box sx={{ width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: "999px", bgcolor: status === "ready" ? alpha("#16a34a", 0.12) : status === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: status === "ready" ? "success.main" : status === "loading" ? "primary.main" : "error.main" }}>
+                            <Box sx={{ width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: "999px", bgcolor: status === "ready" ? "transparent" : status === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: status === "ready" ? "success.main" : status === "loading" ? "primary.main" : "error.main" }}>
                               {statusIcon}
                             </Box>
                           </Box>
@@ -200,23 +196,25 @@ export function ContainerSection({
         )}
       </Box>
 
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-        <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent sx={{ p: 3, display: "grid", gap: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              サービスのデプロイ
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-              <Button component="a" href="#deploy" variant="contained" startIcon={<CloudUploadOutlinedIcon />} fullWidth onClick={onDeployClick}>
-                コンテナのデプロイ
-              </Button>
-              <Button component="a" href="#container" variant="outlined" startIcon={<GitHubIcon />} fullWidth onClick={onRepoConnectClick}>
-                リポジトリの接続
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      </Box>
+      {!selectedService ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <Card variant="outlined" sx={{ borderRadius: 2 }}>
+            <CardContent sx={{ p: 3, display: "grid", gap: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                サービスのデプロイ
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <Button component="a" href="#deploy" variant="contained" startIcon={<CloudUploadOutlinedIcon />} fullWidth onClick={onDeployClick}>
+                  コンテナのデプロイ
+                </Button>
+                <Button component="a" href="#container" variant="outlined" startIcon={<GitHubIcon />} fullWidth onClick={onRepoConnectClick}>
+                  リポジトリの接続
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      ) : null}
     </Box>
   );
 }
