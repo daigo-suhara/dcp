@@ -89,9 +89,22 @@ export function ContainerSection({
                   </Typography>
                   <Typography sx={{ mt: 0.5, fontWeight: 600, wordBreak: "break-all" }}>
                     {selectedService.url ? (
-                      <a href={selectedService.url} target="_blank" rel="noreferrer">
+                      <Box
+                        component="a"
+                        href={selectedService.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        sx={{
+                          color: "primary.main",
+                          textDecoration: "underline",
+                          textUnderlineOffset: "3px",
+                          "&:hover": {
+                            color: "primary.dark"
+                          }
+                        }}
+                      >
                         {selectedService.url}
-                      </a>
+                      </Box>
                     ) : (
                       "-"
                     )}
