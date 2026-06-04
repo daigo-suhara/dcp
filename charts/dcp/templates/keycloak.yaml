@@ -62,7 +62,10 @@ data:
     locales=en,ja
     styles=css/login.css css/dcp.css
   messages_ja.properties: |
+    loginTitle=D Cloud にログイン
+    loginTitleHtml=D Cloud にログイン
     loginAccountTitle=D Cloud にログイン
+    welcome=D Cloud へようこそ
     doLogIn=ログイン
     doRegister=ユーザー登録
     usernameOrEmail=ユーザー名またはメールアドレス
@@ -71,6 +74,14 @@ data:
     doForgotPassword=パスワードを忘れた場合
     noAccount=アカウントをお持ちでない場合は
     identity-provider-login-label=または外部アカウントでログイン
+    invalidUserMessage=ユーザー名またはメールアドレスが正しくありません
+    invalidUsernameMessage=ユーザー名が正しくありません
+    invalidPasswordMessage=パスワードが正しくありません
+    accountDisabledMessage=アカウントが無効です
+    invalidEmailMessage=メールアドレスが正しくありません
+    backToLogin=ログイン画面に戻る
+    errorTitle=認証エラー
+    errorIntro=入力内容を確認してください
   dcp.css: |
     .login-pf body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
