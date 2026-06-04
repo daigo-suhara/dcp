@@ -4,9 +4,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import GitHubIcon from "@mui/icons-material/GitHub";
-import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
-import { Box, Button, Card, CardContent, Paper, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, CircularProgress, Paper, Typography } from "@mui/material";
 import type { DeployedService } from "../types";
 import { formatServiceStatus, formatServiceTimestamp, getServiceStatus } from "../utils";
 
@@ -37,7 +36,7 @@ export function ContainerSection({
     selectedStatus === "ready" ? (
       <CheckCircleIcon fontSize="small" />
     ) : selectedStatus === "loading" ? (
-      <HourglassTopIcon fontSize="small" />
+      <CircularProgress size={16} thickness={5} sx={{ color: "inherit" }} />
     ) : (
       <ErrorOutlinedIcon fontSize="small" />
     );
@@ -131,7 +130,14 @@ export function ContainerSection({
                   {services.length > 0 ? (
                     services.map((service) => {
                       const status = getServiceStatus(service);
-                      const statusIcon = status === "ready" ? <CheckCircleIcon fontSize="small" /> : status === "loading" ? <HourglassTopIcon fontSize="small" /> : <ErrorOutlinedIcon fontSize="small" />;
+                      const statusIcon =
+                        status === "ready" ? (
+                          <CheckCircleIcon fontSize="small" />
+                        ) : status === "loading" ? (
+                          <CircularProgress size={14} thickness={5.5} sx={{ color: "inherit" }} />
+                        ) : (
+                          <ErrorOutlinedIcon fontSize="small" />
+                        );
                       return (
                         <Paper
                           key={service.name}
