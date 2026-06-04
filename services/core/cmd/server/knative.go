@@ -10,11 +10,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	neturl "net/url"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -192,45 +189,6 @@ func (m *knativeServiceManager) PublicTargetURL(ctx context.Context, name string
 	return service.TargetURL, nil
 }
 
-func (m *knativeServiceManager) Logs(ctx context.Context, scope projectScope, name string, tailLines int) (string, error) {
-	service, err := m.getUserService(ctx, scope, name)
-	if err != nil {
-		return "", err
-	}
-
-	pods, err := m.listServicePods(ctx, service)
-	if err != nil {
-		return "", err
-	}
-	if len(pods) == 0 {
-		return "", nil
-	}
-
-	sort.Slice(pods, func(i, j int) bool {
-		if pods[i].CreationTimestamp.Equal(pods[j].CreationTimestamp) {
-			return pods[i].Name > pods[j].Name
-		}
-		return pods[i].CreationTimestamp.After(pods[j].CreationTimestamp)
-	})
-
-	containerName := service.Name
-	for _, pod := range pods {
-		logs, err := m.readPodLogs(ctx, pod.Name, containerName, tailLines)
-		if err == nil {
-			return logs, nil
-		}
-		if errors.Is(err, errServiceNotFound) {
-			continue
-		}
-		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "container") {
-			continue
-		}
-		return "", err
-	}
-
-	return "", nil
-}
-
 func (m *knativeServiceManager) Deploy(ctx context.Context, scope projectScope, req deployRequest) (deployedService, error) {
 	resourceName := userServiceResourceName(scope.ProjectID, req.Name)
 	manifest := knativeServiceManifest{
@@ -322,81 +280,6 @@ func (m *knativeServiceManager) Delete(ctx context.Context, scope projectScope, 
 	}
 
 	return nil
-}
-
-func (m *knativeServiceManager) listServicePods(ctx context.Context, service deployedService) ([]knativePodInfo, error) {
-	selector := neturl.Values{}
-	selector.Set("labelSelector", strings.Join([]string{
-		"app.kubernetes.io/managed-by=" + userServiceManagerLabel,
-		userLabelKey + "=" + serviceNameLabelValue(service),
-		projectLabelKey + "=" + strings.TrimSpace(service.ProjectID),
-		serviceNameLabel + "=" + service.Name,
-	}, ","))
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s/api/v1/namespaces/%s/pods?%s", m.baseURL, m.namespace, selector.Encode()), nil)
-	if err != nil {
-		return nil, err
-	}
-	m.authorize(req)
-
-	res, err := m.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode >= 300 {
-		return nil, decodeAPIError(res)
-	}
-
-	var payload struct {
-		Items []knativePodInfo `json:"items"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
-		return nil, err
-	}
-	return payload.Items, nil
-}
-
-func (m *knativeServiceManager) readPodLogs(ctx context.Context, podName string, containerName string, tailLines int) (string, error) {
-	reqURL, err := neturl.Parse(fmt.Sprintf("%s/api/v1/namespaces/%s/pods/%s/log", m.baseURL, m.namespace, podName))
-	if err != nil {
-		return "", err
-	}
-	query := reqURL.Query()
-	if containerName != "" {
-		query.Set("container", containerName)
-	}
-	if tailLines > 0 {
-		query.Set("tailLines", strconv.Itoa(tailLines))
-	}
-	query.Set("timestamps", "true")
-	reqURL.RawQuery = query.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL.String(), nil)
-	if err != nil {
-		return "", err
-	}
-	m.authorize(req)
-
-	res, err := m.client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode == http.StatusNotFound || res.StatusCode == http.StatusBadRequest {
-		return "", errServiceNotFound
-	}
-	if res.StatusCode >= 300 {
-		return "", decodeAPIError(res)
-	}
-
-	logs, err := io.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-	return string(logs), nil
 }
 
 func (m *knativeServiceManager) getUserService(ctx context.Context, scope projectScope, name string) (deployedService, error) {
@@ -505,23 +388,6 @@ func decodeService(res *http.Response, scope projectScope) (deployedService, err
 	}
 
 	return service, nil
-}
-
-type knativePodInfo struct {
-	Name              string    `json:"name"`
-	CreationTimestamp time.Time `json:"creationTimestamp"`
-	Spec              struct {
-		Containers []struct {
-			Name string `json:"name"`
-		} `json:"containers"`
-	} `json:"spec"`
-}
-
-func serviceNameLabelValue(service deployedService) string {
-	if value := strings.TrimSpace(service.Name); value != "" {
-		return value
-	}
-	return strings.TrimSpace(service.ResourceName)
 }
 
 func (m *knativeServiceManager) findUserService(ctx context.Context, scope projectScope, name string) (deployedService, error) {
