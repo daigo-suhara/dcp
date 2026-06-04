@@ -1,6 +1,5 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { Alert, Box, Button, Card, CardContent, Divider, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Divider, TextField, Typography } from "@mui/material";
 import type { FormEvent } from "react";
 import type { DeployForm } from "../types";
 
@@ -20,6 +19,12 @@ type DeploySectionProps = {
 export function DeploySection({ error, form, onBack, onChange, onSubmit, submitting }: DeploySectionProps) {
   const serviceName = form.name.trim();
   const serviceNameError = serviceName.length > 0 && !isDnsLabel(serviceName);
+  function fillTestImage() {
+    onChange({
+      name: "hello",
+      image: "ghcr.io/daigo-suhara/hello-world:latest"
+    });
+  }
   return (
     <Card variant="outlined" sx={{ borderRadius: 2, maxWidth: 1120, width: "100%" }}>
       <CardContent sx={{ p: { xs: 2.5, sm: 3 }, display: "grid", gap: 2.5 }}>
@@ -27,9 +32,6 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
           <Box sx={{ display: "grid", gap: 0.75 }}>
             <Typography variant="h5" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
               コンテナを作成
-            </Typography>
-            <Typography color="text.secondary">
-              イメージ、ポート、スケール範囲をまとめて指定してデプロイします。
             </Typography>
           </Box>
           <Button startIcon={<ArrowBackIcon />} onClick={onBack} variant="outlined">
@@ -44,9 +46,6 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   デプロイ設定
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  必須項目から順に入力
-                </Typography>
               </Box>
 
               <Divider />
@@ -58,7 +57,7 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                   onChange={(event) => onChange({ name: event.target.value })}
                   placeholder="service-name"
                   error={serviceNameError}
-                  helperText={serviceNameError ? "英小文字・数字・ハイフンのみで入力してください" : "DNS 名や一覧に表示される名前です"}
+                  helperText={serviceNameError ? "英小文字・数字・ハイフンのみ" : ""}
                   slotProps={{
                     htmlInput: {
                       autoCapitalize: "none",
@@ -77,9 +76,15 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                   value={form.image}
                   onChange={(event) => onChange({ image: event.target.value })}
                   placeholder="ghcr.io/org/app:tag"
-                  helperText="レジストリの完全修飾イメージ名を入力します"
+                  helperText=""
                   fullWidth
                 />
+
+                <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+                  <Button type="button" variant="text" size="small" onClick={fillTestImage} sx={{ px: 0, minWidth: 0 }}>
+                    テストイメージ
+                  </Button>
+                </Box>
 
                 <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" } }}>
                   <TextField
@@ -89,7 +94,7 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                     value={form.port}
                     onChange={(event) => onChange({ port: event.target.value })}
                     placeholder="8080"
-                    helperText="コンテナが待ち受けるポート"
+                    helperText=""
                     fullWidth
                   />
                   <TextField
@@ -99,7 +104,7 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                     value={form.minScale}
                     onChange={(event) => onChange({ minScale: event.target.value })}
                     placeholder="0"
-                    helperText="未使用時の待機数"
+                    helperText=""
                     fullWidth
                   />
                   <TextField
@@ -109,7 +114,7 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                     value={form.maxScale}
                     onChange={(event) => onChange({ maxScale: event.target.value })}
                     placeholder="1"
-                    helperText="必要に応じて増やす上限"
+                    helperText=""
                     fullWidth
                   />
                 </Box>
@@ -127,42 +132,6 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
               {error ? <Alert severity="error">{error}</Alert> : null}
             </CardContent>
           </Card>
-
-          <Paper variant="outlined" sx={{ borderRadius: 2, p: { xs: 2.25, sm: 2.5 }, bgcolor: "grey.50" }}>
-            <Stack spacing={2.25}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <InfoOutlinedIcon color="primary" fontSize="small" />
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  入力ガイド
-                </Typography>
-              </Box>
-
-              <Typography variant="body2" color="text.secondary">
-                まずはイメージ名とポートだけ入れれば動かせます。スケールは初期値のままでも構いません。
-              </Typography>
-
-              <Box sx={{ display: "grid", gap: 1.25 }}>
-                <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid rgba(148, 163, 184, 0.24)", bgcolor: "background.paper" }}>
-                  <Typography variant="caption" color="text.secondary">
-                    推奨イメージ
-                  </Typography>
-                  <Typography sx={{ fontWeight: 700, mt: 0.25 }}>ghcr.io/org/app:tag</Typography>
-                </Box>
-                <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid rgba(148, 163, 184, 0.24)", bgcolor: "background.paper" }}>
-                  <Typography variant="caption" color="text.secondary">
-                    推奨ポート
-                  </Typography>
-                  <Typography sx={{ fontWeight: 700, mt: 0.25 }}>8080</Typography>
-                </Box>
-                <Box sx={{ p: 1.5, borderRadius: 2, border: "1px solid rgba(148, 163, 184, 0.24)", bgcolor: "background.paper" }}>
-                  <Typography variant="caption" color="text.secondary">
-                    初期スケール
-                  </Typography>
-                  <Typography sx={{ fontWeight: 700, mt: 0.25 }}>min 0 / max 1</Typography>
-                </Box>
-              </Box>
-            </Stack>
-          </Paper>
         </Box>
       </CardContent>
     </Card>
