@@ -1,7 +1,7 @@
 import { alpha } from "@mui/material/styles";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
-import { Box, Button, Card, CardContent, Paper, Radio, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, CircularProgress, IconButton, Paper, Radio, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import type { FormEvent } from "react";
 import type { Project } from "../types";
 
@@ -100,18 +100,33 @@ export function HomeSection({
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ py: { xs: 0.5, sm: 1.25 }, pr: { xs: 0.5, sm: 1 } }}>
-                        <Button
-                          variant="outlined"
-                          color="inherit"
-                          startIcon={<DeleteOutlinedIcon />}
-                          disabled={!canDelete || deletingProjectId === project.id}
-                          onClick={() => onRequestDeleteProject(project.id)}
-                          fullWidth
-                          size="small"
-                          sx={{ whiteSpace: "nowrap" }}
-                        >
-                          {deletingProjectId === project.id ? "削除中..." : "削除"}
-                        </Button>
+                        <Tooltip title="削除">
+                          <span>
+                            <IconButton
+                              color="error"
+                              disabled={!canDelete || deletingProjectId === project.id}
+                              onClick={() => onRequestDeleteProject(project.id)}
+                              size="small"
+                              sx={{
+                                border: "1px solid",
+                                borderColor: "error.main",
+                                bgcolor: "error.main",
+                                color: "common.white",
+                                "&:hover": {
+                                  bgcolor: "error.dark",
+                                  borderColor: "error.dark"
+                                },
+                                "&.Mui-disabled": {
+                                  bgcolor: "rgba(220, 38, 38, 0.08)",
+                                  color: "error.main",
+                                  borderColor: "rgba(220, 38, 38, 0.2)"
+                                }
+                              }}
+                            >
+                              {deletingProjectId === project.id ? <CircularProgress size={14} thickness={5} sx={{ color: "inherit" }} /> : <DeleteOutlinedIcon fontSize="small" />}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );
