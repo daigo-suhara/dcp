@@ -25,6 +25,7 @@ type AppShellProps = {
   onClearMessage: () => void;
   pendingDeleteName: string;
   pendingProjectDeleteId: string;
+  pendingProjectDeleteName: string;
   projects: Project[];
   route: RouteState;
   sidebarOpen: boolean;
@@ -49,6 +50,7 @@ export function AppShell({
   onClearMessage,
   pendingDeleteName,
   pendingProjectDeleteId,
+  pendingProjectDeleteName,
   projects,
   route,
   sidebarOpen
@@ -83,6 +85,7 @@ export function AppShell({
         onConfirmDeleteProject={onConfirmDeleteProject}
         pendingDeleteName={pendingDeleteName}
         pendingProjectDeleteId={pendingProjectDeleteId}
+        pendingProjectDeleteName={pendingProjectDeleteName}
       />
     </Box>
   );

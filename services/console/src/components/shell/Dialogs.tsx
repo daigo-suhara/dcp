@@ -10,6 +10,7 @@ type DialogsProps = {
   onConfirmDeleteProject: (projectId: string) => void;
   pendingDeleteName: string;
   pendingProjectDeleteId: string;
+  pendingProjectDeleteName: string;
 };
 
 export function Dialogs({
@@ -20,7 +21,8 @@ export function Dialogs({
   onConfirmDelete,
   onConfirmDeleteProject,
   pendingDeleteName,
-  pendingProjectDeleteId
+  pendingProjectDeleteId,
+  pendingProjectDeleteName
 }: DialogsProps) {
   return (
     <>
@@ -55,7 +57,7 @@ export function Dialogs({
         <DialogContent dividers>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              プロジェクトの削除
+              {pendingProjectDeleteName}
             </Typography>
             <Typography color="text.secondary">このプロジェクトを削除しますか？</Typography>
           </Box>
@@ -72,4 +74,3 @@ export function Dialogs({
     </>
   );
 }
-

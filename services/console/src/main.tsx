@@ -57,6 +57,7 @@ function App() {
         onLogout={controller.startLogout}
         pendingDeleteName={controller.pendingDeleteName}
         pendingProjectDeleteId={controller.pendingProjectDeleteId}
+        pendingProjectDeleteName={controller.pendingProjectDeleteName}
         projects={controller.projects}
         route={controller.route}
         sidebarOpen={controller.sidebarOpen}

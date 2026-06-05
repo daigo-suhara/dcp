@@ -17,6 +17,7 @@ export function useConsoleController() {
   const [showProjectCreateForm, setShowProjectCreateForm] = useState(false);
   const [deletingProjectId, setDeletingProjectId] = useState("");
   const [pendingProjectDeleteId, setPendingProjectDeleteId] = useState("");
+  const [pendingProjectDeleteName, setPendingProjectDeleteName] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
   const [route, setRoute] = useState<RouteState>(() => parseRoute(window.location.hash));
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -277,12 +278,14 @@ export function useConsoleController() {
     setPendingDeleteName("");
   }
 
-  function requestDeleteProject(projectId: string) {
+  function requestDeleteProject(projectId: string, projectName: string) {
     setPendingProjectDeleteId(projectId);
+    setPendingProjectDeleteName(projectName);
   }
 
   function cancelProjectDelete() {
     setPendingProjectDeleteId("");
+    setPendingProjectDeleteName("");
   }
 
   async function confirmDelete(name: string) {
@@ -314,6 +317,7 @@ export function useConsoleController() {
 
   async function confirmDeleteProject(projectId: string) {
     setPendingProjectDeleteId("");
+    setPendingProjectDeleteName("");
     setDeletingProjectId(projectId);
     setError("");
     setMessage("");
@@ -359,6 +363,7 @@ export function useConsoleController() {
     message,
     pendingDeleteName,
     pendingProjectDeleteId,
+    pendingProjectDeleteName,
     projectName,
     projects,
     requestDelete,

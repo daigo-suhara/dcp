@@ -11,7 +11,7 @@ type HomeSectionProps = {
   deletingProjectId: string;
   onCreateProject: (event: FormEvent<HTMLFormElement>) => void;
   onProjectNameChange: (value: string) => void;
-  onRequestDeleteProject: (projectId: string) => void;
+  onRequestDeleteProject: (projectId: string, projectName: string) => void;
   onSelectProject: (projectId: string) => void;
   onToggleCreateForm: () => void;
   projectName: string;
@@ -105,7 +105,7 @@ export function HomeSection({
                             <IconButton
                               color="error"
                               disabled={!canDelete || deletingProjectId === project.id}
-                              onClick={() => onRequestDeleteProject(project.id)}
+                              onClick={() => onRequestDeleteProject(project.id, project.name)}
                               size="small"
                               sx={{
                                 border: "1px solid",
