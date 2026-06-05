@@ -463,6 +463,23 @@ func (a *apiServer) deployService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	services, err := a.services.List(r.Context(), scope)
+	if err != nil {
+		a.logger.Error("list services before deploy failed", "error", err, "name", req.Name)
+		writeJSON(w, http.StatusBadGateway, map[string]string{
+			"error": "サービスの作成に失敗しました",
+		})
+		return
+	}
+	for _, service := range services {
+		if service.Name == req.Name {
+			writeJSON(w, http.StatusConflict, map[string]string{
+				"error": "同じ名前のサービスは作成できません",
+			})
+			return
+		}
+	}
+
 	service, err := a.services.Deploy(r.Context(), scope, req)
 	if err != nil {
 		a.logger.Error("deploy service failed", "error", err, "name", req.Name)

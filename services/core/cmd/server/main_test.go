@@ -137,7 +137,6 @@ func TestListServices(t *testing.T) {
 func TestDeployService(t *testing.T) {
 	withTestUUID(t)
 	auth := testAuth()
-	resourceName := userServiceResourceName(testProjectID("default"), "hello-dcp")
 	manager := &fakeServiceManager{}
 	api := &apiServer{
 		auth:      auth,
@@ -166,7 +165,7 @@ func TestDeployService(t *testing.T) {
 	if got.Name != "hello-dcp" || got.Image != "ghcr.io/example/hello-dcp:latest" {
 		t.Fatalf("unexpected deploy response: %+v", got)
 	}
-	if got.URL != "https://172.16.100.11:8080/container-apps/"+resourceName+"/" {
+	if !strings.HasPrefix(got.URL, "https://172.16.100.11:8080/container-apps/") || !strings.HasSuffix(got.URL, "/") {
 		t.Fatalf("expected public service url, got %q", got.URL)
 	}
 	if got.UpdatedAt == "" {
@@ -177,6 +176,39 @@ func TestDeployService(t *testing.T) {
 	}
 	if manager.deployed[0].scope.ProjectID != testProjectID("default") {
 		t.Fatalf("expected default project scope, got %+v", manager.deployed[0].scope)
+	}
+}
+
+func TestDeployServiceRejectsDuplicateName(t *testing.T) {
+	withTestUUID(t)
+	auth := testAuth()
+	manager := &fakeServiceManager{
+		services: []deployedService{
+			{
+				Name:      "hello-dcp",
+				Namespace: "dcp-system",
+				ProjectID: testProjectID("default"),
+			},
+		},
+	}
+	api := &apiServer{
+		auth:      auth,
+		services:  manager,
+		projects:  newMemoryProjectManager(),
+		namespace: "dcp-system",
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "http://172.16.100.11:8080/api/v1/services", strings.NewReader(`{"name":"hello-dcp","image":"ghcr.io/example/hello-dcp:latest","port":8080,"minScale":1,"maxScale":5}`))
+	req.AddCookie(testSessionCookie(t, auth, authUser{ID: "default-user", Username: "default-user"}))
+	rec := httptest.NewRecorder()
+
+	api.deployService(rec, req)
+
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("expected status %d, got %d", http.StatusConflict, rec.Code)
+	}
+	if len(manager.deployed) != 0 {
+		t.Fatalf("expected no deploy calls, got %d", len(manager.deployed))
 	}
 }
 

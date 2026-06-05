@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -190,7 +191,12 @@ func (m *knativeServiceManager) PublicTargetURL(ctx context.Context, name string
 }
 
 func (m *knativeServiceManager) Deploy(ctx context.Context, scope projectScope, req deployRequest) (deployedService, error) {
-	resourceName := userServiceResourceName(scope.ProjectID, req.Name)
+	resourceName := newUserServiceResourceName(req.Name)
+	if existing, err := m.findUserService(ctx, scope, req.Name); err == nil {
+		resourceName = existing.ResourceName
+	} else if !errors.Is(err, errServiceNotFound) {
+		return deployedService{}, err
+	}
 	manifest := knativeServiceManifest{
 		APIVersion: "serving.knative.dev/v1",
 		Kind:       "Service",
@@ -353,6 +359,33 @@ func userServiceResourceName(projectID, name string) string {
 		prefix = "service"
 	}
 	return prefix + "-" + suffix
+}
+
+func newUserServiceResourceName(name string) string {
+	prefix := sanitizeDNSLabel(name)
+	if prefix == "" {
+		prefix = "service"
+	}
+	suffix := randomHex(4)
+	maxPrefixLen := 63 - 1 - len(suffix)
+	if len(prefix) > maxPrefixLen {
+		prefix = strings.TrimRight(prefix[:maxPrefixLen], "-")
+	}
+	if prefix == "" {
+		prefix = "service"
+	}
+	return prefix + "-" + suffix
+}
+
+func randomHex(n int) string {
+	if n <= 0 {
+		n = 4
+	}
+	buf := make([]byte, n)
+	if _, err := rand.Read(buf); err != nil {
+		return hex.EncodeToString([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))
+	}
+	return hex.EncodeToString(buf)
 }
 
 func decodeService(res *http.Response, scope projectScope) (deployedService, error) {
