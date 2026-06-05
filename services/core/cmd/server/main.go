@@ -296,6 +296,10 @@ func (a *apiServer) createProject(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "プロジェクト名は必須です"})
 		return
 	}
+	if !isProjectName(req.Name) {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "プロジェクト名は英小文字・数字・ハイフンのみで指定してください"})
+		return
+	}
 	project, err := a.projects.Create(r.Context(), userID, req.Name)
 	if err != nil {
 		a.logger.Error("create project failed", "error", err, "user", userID)
@@ -782,6 +786,13 @@ func isDNSLabel(value string) bool {
 		return false
 	}
 	return true
+}
+
+func isProjectName(value string) bool {
+	if !isDNSLabel(value) {
+		return false
+	}
+	return strings.ToLower(value) == value
 }
 
 func writeJSON(w http.ResponseWriter, status int, body any) {

@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { Box, CssBaseline, ThemeProvider } from "@mui/material";
+import { BrowserRouter, useNavigate } from "react-router-dom";
 import "./styles.css";
 import { AppShell } from "./components/AppShell";
 import { AuthScreen } from "./components/AuthScreen";
@@ -13,9 +14,20 @@ import { theme } from "./theme";
 import { useConsoleController } from "./hooks/useConsoleController";
 
 function App() {
-  const controller = useConsoleController();
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
 
-  if (controller.authLoading) {
+function AppContent() {
+  const controller = useConsoleController();
+  const navigate = useNavigate();
+  const forceProjectCreate = Boolean(controller.currentUser && controller.projectsLoaded && controller.projects.length === 0);
+  const visibleSection = forceProjectCreate ? "project-create" : controller.route.section;
+
+  if (controller.authLoading || (controller.currentUser && !controller.projectsLoaded)) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -52,7 +64,6 @@ function App() {
         onCloseSidebar={() => controller.setSidebarOpen(false)}
         onConfirmDelete={controller.confirmDelete}
         onConfirmDeleteProject={controller.confirmDeleteProject}
-        onNavigate={(section) => (window.location.hash = `#${section}`)}
         onProjectSelect={controller.handleProjectSelect}
         onToggleSidebar={() => controller.setSidebarOpen(true)}
         onLogout={controller.startLogout}
@@ -62,43 +73,44 @@ function App() {
         projects={controller.projects}
         route={controller.route}
         sidebarOpen={controller.sidebarOpen}
+        onNavigate={(section) => navigate(section === "deploy" ? "/container/deploy" : `/${section}`)}
       >
-        {controller.route.section === "home" ? (
+        {visibleSection === "home" ? (
           <HomeSection
             activeProjectId={controller.activeProjectId}
             deletingProjectId={controller.deletingProjectId}
-            onOpenProjectCreate={() => (window.location.hash = "#project-create")}
+            onOpenProjectCreate={() => navigate("/project-create")}
             onRequestDeleteProject={controller.requestDeleteProject}
             onSelectProject={controller.handleProjectSelect}
             projects={controller.projects}
           />
-        ) : controller.route.section === "project-create" ? (
+        ) : visibleSection === "project-create" ? (
           <ProjectCreateSection
             creatingProject={controller.creatingProject}
             hasProjects={controller.projects.length > 0}
-            onBack={() => (window.location.hash = "#home")}
+            onBack={() => navigate("/home")}
             onCreateProject={controller.handleCreateProject}
             onProjectNameChange={controller.setProjectName}
             projectName={controller.projectName}
           />
-        ) : controller.route.section === "container" ? (
+        ) : visibleSection === "container" ? (
           <ContainerSection
             loading={controller.loading}
             deletingServiceName={controller.deletingName}
-            onBackToList={() => (window.location.hash = "#container")}
-            onDeployClick={() => (window.location.hash = "#deploy")}
+            onBackToList={() => navigate("/container")}
+            onDeployClick={() => navigate("/container/deploy")}
             onDeleteService={controller.requestDelete}
             onOpenService={controller.handleOpenService}
-            onRepoConnectClick={() => (window.location.hash = "#container")}
+            onRepoConnectClick={() => navigate("/container")}
             selectedService={controller.selectedService}
             selectedStatus={controller.selectedStatus}
             services={controller.services}
           />
-        ) : controller.route.section === "deploy" ? (
+        ) : visibleSection === "deploy" ? (
           <DeploySection
             error={controller.error}
             form={controller.form}
-            onBack={() => (window.location.hash = "#container")}
+            onBack={() => navigate("/container")}
             onChange={controller.handleFormChange}
             onSubmit={controller.handleSubmit}
             submitting={controller.submitting}

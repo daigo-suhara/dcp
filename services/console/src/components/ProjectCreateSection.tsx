@@ -20,6 +20,10 @@ export function ProjectCreateSection({
   onProjectNameChange,
   projectName
 }: ProjectCreateSectionProps) {
+  const normalizedName = projectName.trim();
+  const isValidName = /^[a-z0-9-]+$/.test(normalizedName) && !normalizedName.startsWith("-") && !normalizedName.endsWith("-");
+  const showError = normalizedName.length > 0 && !isValidName;
+
   return (
     <Box sx={{ display: "flex", justifyContent: "center" }}>
       <Card variant="outlined" sx={{ width: "100%", maxWidth: 720, borderRadius: 2 }}>
@@ -28,9 +32,6 @@ export function ProjectCreateSection({
             <Box sx={{ display: "grid", gap: 0.5 }}>
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 プロジェクトを作成
-              </Typography>
-              <Typography color="text.secondary">
-                最初のプロジェクトを作成してください。
               </Typography>
             </Box>
             {hasProjects ? (
@@ -48,10 +49,12 @@ export function ProjectCreateSection({
                 value={projectName}
                 onChange={(event) => onProjectNameChange(event.target.value)}
                 placeholder="新しいプロジェクト"
+                error={showError}
+                helperText={showError ? "英小文字・数字・ハイフンのみ" : ""}
                 fullWidth
               />
               <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                <Button type="submit" variant="contained" startIcon={<AddOutlinedIcon />} disabled={creatingProject || !projectName.trim()}>
+                <Button type="submit" variant="contained" startIcon={<AddOutlinedIcon />} disabled={creatingProject || !normalizedName || !isValidName}>
                   作成
                 </Button>
               </Box>

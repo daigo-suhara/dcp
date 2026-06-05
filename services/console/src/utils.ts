@@ -1,7 +1,7 @@
 import type { DeployedService, RouteState } from "./types";
 
-export function parseRoute(hash: string): RouteState {
-  const route = hash.replace(/^#/, "");
+export function parseRoute(pathname: string): RouteState {
+  const route = pathname.replace(/^\/+/, "");
 
   if (!route) {
     return { section: "home", selectedServiceName: null };
@@ -10,6 +10,9 @@ export function parseRoute(hash: string): RouteState {
   const [section, ...rest] = route.split("/");
   const normalizedSection = section === "services" ? "container" : section;
 
+  if (normalizedSection === "container" && rest[0] === "deploy") {
+    return { section: "deploy", selectedServiceName: null };
+  }
   if (normalizedSection === "container" && rest.length > 0) {
     return {
       section: "container",

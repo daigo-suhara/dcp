@@ -6,6 +6,7 @@ import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Box, Button, Card, CardContent, CircularProgress, Paper, Typography } from "@mui/material";
+import { Link as RouterLink } from "react-router-dom";
 import type { DeployedService } from "../types";
 import { actionLinkSx } from "../theme";
 import { formatServiceStatus, formatServiceTimestamp, getServiceStatus } from "../utils";
@@ -176,7 +177,7 @@ export function ContainerSection({
                             </Box>
                           </Box>
                           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "minmax(120px, max-content) 150px" }, columnGap: 3, rowGap: 0.5, alignItems: "center", minWidth: 0 }}>
-                            <Button component="a" href={`#container/${encodeURIComponent(service.name)}`} onClick={() => onOpenService(service.name)} sx={{ justifyContent: "flex-start", textAlign: "left", color: "inherit", px: 0, minWidth: 0 }}>
+                            <Button component={RouterLink} to={`/container/${encodeURIComponent(service.name)}`} onClick={() => onOpenService(service.name)} sx={{ justifyContent: "flex-start", textAlign: "left", color: "inherit", px: 0, minWidth: 0 }}>
                               <Typography sx={{ fontWeight: 700, wordBreak: "break-all" }}>{service.name}</Typography>
                             </Button>
                             <Typography variant="body2" color="text.secondary" sx={{ display: { xs: "none", sm: "block" }, whiteSpace: { xs: "normal", sm: "nowrap" } }}>
@@ -206,10 +207,10 @@ export function ContainerSection({
                 サービスのデプロイ
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                <Button component="a" href="#deploy" variant="contained" startIcon={<CloudUploadOutlinedIcon />} fullWidth onClick={onDeployClick}>
+                <Button component={RouterLink} to="/container/deploy" variant="contained" startIcon={<CloudUploadOutlinedIcon />} fullWidth onClick={onDeployClick}>
                   コンテナのデプロイ
                 </Button>
-                <Button component="a" href="#container" variant="outlined" startIcon={<GitHubIcon />} fullWidth onClick={onRepoConnectClick}>
+                <Button component={RouterLink} to="/container" variant="outlined" startIcon={<GitHubIcon />} fullWidth onClick={onRepoConnectClick}>
                   リポジトリの接続
                 </Button>
               </Box>

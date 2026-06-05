@@ -343,6 +343,35 @@ func TestCreateProjectRejectsDuplicateName(t *testing.T) {
 	}
 }
 
+func TestCreateProjectRejectsInvalidName(t *testing.T) {
+	withTestUUID(t)
+	auth := testAuth()
+	api := &apiServer{
+		logger:    slog.New(slog.NewTextHandler(io.Discard, nil)),
+		auth:      auth,
+		projects:  newMemoryProjectManager(),
+		namespace: "dcp-system",
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "http://172.16.100.11:8080/api/v1/projects", strings.NewReader(`{"name":"Hello-World"}`))
+	req.AddCookie(testSessionCookie(t, auth, authUser{ID: "default-user", Username: "default-user"}))
+	rec := httptest.NewRecorder()
+
+	api.createProject(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+	}
+
+	var got map[string]string
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if got["error"] != "プロジェクト名は英小文字・数字・ハイフンのみで指定してください" {
+		t.Fatalf("unexpected error response: %+v", got)
+	}
+}
+
 func TestDeleteProject(t *testing.T) {
 	withTestUUID(t)
 	auth := testAuth()

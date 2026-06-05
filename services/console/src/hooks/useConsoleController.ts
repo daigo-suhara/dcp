@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { initialForm, type AuthUser, type DeployedService, type PlatformResponse, type Project, type ProjectsResponse, type RouteState } from "../types";
 import { getServiceStatus, parseRoute } from "../utils";
 
@@ -18,15 +19,18 @@ export function useConsoleController() {
   const [pendingProjectDeleteId, setPendingProjectDeleteId] = useState("");
   const [pendingProjectDeleteName, setPendingProjectDeleteName] = useState("");
   const [authLoading, setAuthLoading] = useState(true);
-  const [route, setRoute] = useState<RouteState>(() => parseRoute(window.location.hash));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingName, setDeletingName] = useState("");
   const [pendingDeleteName, setPendingDeleteName] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const route = useMemo<RouteState>(() => parseRoute(location.pathname), [location.pathname]);
 
   const selectedService =
     route.section === "container" && route.selectedServiceName
@@ -43,10 +47,7 @@ export function useConsoleController() {
   }, [message]);
 
   useEffect(() => {
-    const handleHashChange = () => setRoute(parseRoute(window.location.hash));
-    window.addEventListener("hashchange", handleHashChange);
     void loadCurrentUser();
-    return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
   useEffect(() => {
@@ -55,12 +56,14 @@ export function useConsoleController() {
       setServices([]);
       setActiveProjectId("");
       setProjectName("");
+      setProjectsLoaded(false);
       return;
     }
 
     setProjects([]);
     setServices([]);
     setActiveProjectId("");
+    setProjectsLoaded(false);
     const savedProject = localStorage.getItem(projectStorageKey(currentUser.id));
     if (savedProject) {
       setActiveProjectId(savedProject);
@@ -80,6 +83,15 @@ export function useConsoleController() {
 
     return () => window.clearInterval(timer);
   }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!currentUser || !projectsLoaded || projects.length > 0 || route.section === "project-create") {
+      return;
+    }
+    if (location.pathname !== "/project-create") {
+      navigate("/project-create", { replace: true });
+    }
+  }, [currentUser, location.pathname, navigate, projects.length, projectsLoaded, route.section]);
 
   function apiHeaders(extra?: HeadersInit) {
     const headers = new Headers(extra);
@@ -137,7 +149,7 @@ export function useConsoleController() {
   }
 
   function handleOpenService(name: string) {
-    window.location.hash = `#container/${encodeURIComponent(name)}`;
+    navigate(`/container/${encodeURIComponent(name)}`);
   }
 
   function handleFormChange(patch: Partial<typeof form>) {
@@ -159,10 +171,11 @@ export function useConsoleController() {
       }
       if ("projects" in data) {
         setProjects(data.projects);
+        setProjectsLoaded(true);
         if (data.projects.length === 0) {
           localStorage.removeItem(projectStorageKey(currentUser.id));
           setActiveProjectId("");
-          window.location.hash = "#project-create";
+          navigate("/project-create", { replace: true });
           return;
         }
 
@@ -229,7 +242,7 @@ export function useConsoleController() {
         handleProjectSelect(data.id);
         setProjectName("");
         setMessage(`${data.name} を作成しました`);
-        window.location.hash = "#home";
+        navigate("/home", { replace: true });
       }
     } catch (projectError) {
       setError(projectError instanceof Error ? projectError.message : "プロジェクトの作成に失敗しました");
@@ -311,7 +324,7 @@ export function useConsoleController() {
       }
       setMessage(`${name} を削除しました`);
       if (route.selectedServiceName === name) {
-        window.location.hash = "#container";
+        navigate("/container");
       }
       await loadServices();
     } catch (deleteError) {
@@ -371,6 +384,7 @@ export function useConsoleController() {
     loadCurrentUser,
     loading,
     message,
+    projectsLoaded,
     pendingDeleteName,
     pendingProjectDeleteId,
     pendingProjectDeleteName,
@@ -382,7 +396,6 @@ export function useConsoleController() {
     selectedService,
     selectedStatus,
     setProjectName,
-    setRoute,
     setSidebarOpen,
     sidebarOpen,
     services,
