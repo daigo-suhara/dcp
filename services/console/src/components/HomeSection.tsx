@@ -1,39 +1,25 @@
 import { alpha } from "@mui/material/styles";
-import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
-import { Box, Button, Card, CardContent, CircularProgress, IconButton, Paper, Radio, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
-import type { FormEvent } from "react";
+import { Box, Button, Card, CardContent, CircularProgress, IconButton, Paper, Radio, Table, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
 import type { Project } from "../types";
 
 type HomeSectionProps = {
   activeProjectId: string;
-  creatingProject: boolean;
   deletingProjectId: string;
-  onCreateProject: (event: FormEvent<HTMLFormElement>) => void;
-  onProjectNameChange: (value: string) => void;
   onRequestDeleteProject: (projectId: string, projectName: string) => void;
   onSelectProject: (projectId: string) => void;
-  onToggleCreateForm: () => void;
-  projectName: string;
+  onOpenProjectCreate: () => void;
   projects: Project[];
-  showProjectCreateForm: boolean;
 };
 
 export function HomeSection({
   activeProjectId,
-  creatingProject,
   deletingProjectId,
-  onCreateProject,
-  onProjectNameChange,
   onRequestDeleteProject,
   onSelectProject,
-  onToggleCreateForm,
-  projectName,
+  onOpenProjectCreate,
   projects,
-  showProjectCreateForm
 }: HomeSectionProps) {
-  const mustCreateProject = projects.length === 0;
-  const shouldShowProjectCreateForm = mustCreateProject || showProjectCreateForm;
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <Card variant="outlined" sx={{ borderRadius: 2 }}>
@@ -42,33 +28,14 @@ export function HomeSection({
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
               プロジェクト管理
             </Typography>
-            {!mustCreateProject ? (
-              <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={onToggleCreateForm}>
-                プロジェクトを作成
-              </Button>
-            ) : null}
+            <Button variant="contained" onClick={onOpenProjectCreate}>
+              プロジェクトを作成
+            </Button>
           </Box>
 
-          {shouldShowProjectCreateForm ? (
-            <Box component="form" onSubmit={onCreateProject} sx={{ display: "grid", gap: 2, maxWidth: 560 }}>
-              <TextField
-                label="プロジェクト名"
-                value={projectName}
-                onChange={(event) => onProjectNameChange(event.target.value)}
-                placeholder="新しいプロジェクト"
-                fullWidth
-              />
-              <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                <Button type="submit" variant="contained" disabled={creatingProject || !projectName.trim()}>
-                  作成
-                </Button>
-              </Box>
-            </Box>
-          ) : null}
-
-          {mustCreateProject ? (
+          {projects.length === 0 ? (
             <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, borderStyle: "dashed", bgcolor: alpha("#ffffff", 0.7) }}>
-              <Typography color="text.secondary">まだプロジェクトがありません。上のフォームで作成してください。</Typography>
+              <Typography color="text.secondary">まだプロジェクトがありません。上のボタンから作成画面へ進んでください。</Typography>
             </Paper>
           ) : (
             <Box sx={{ display: "grid", gap: 1 }}>
@@ -84,7 +51,6 @@ export function HomeSection({
                 <TableBody>
                   {projects.map((project) => {
                     const isActive = project.id === activeProjectId;
-                    const canDelete = project.name !== "default";
                     return (
                       <TableRow
                         key={project.id}
@@ -113,7 +79,7 @@ export function HomeSection({
                             <span>
                               <IconButton
                                 color="error"
-                                disabled={!canDelete || deletingProjectId === project.id}
+                                disabled={deletingProjectId === project.id}
                                 onClick={() => onRequestDeleteProject(project.id, project.name)}
                                 size="small"
                                 sx={{

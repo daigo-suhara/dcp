@@ -335,12 +335,7 @@ func (a *apiServer) deleteProject(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "プロジェクトが見つかりません"})
 		return
 	}
-	if project.Name == "default" {
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "デフォルトプロジェクトは削除できません"})
-		return
-	}
-
-	if a.services != nil {
+		if a.services != nil {
 		scope := projectScope{UserID: userID, ProjectID: project.ID}
 		services, err := a.services.List(r.Context(), scope)
 		if err != nil {

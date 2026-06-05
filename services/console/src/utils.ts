@@ -17,7 +17,7 @@ export function parseRoute(hash: string): RouteState {
     };
   }
 
-  if (normalizedSection === "home" || normalizedSection === "container" || normalizedSection === "deploy") {
+  if (normalizedSection === "home" || normalizedSection === "container" || normalizedSection === "deploy" || normalizedSection === "project-create") {
     return { section: normalizedSection, selectedServiceName: null };
   }
 

@@ -6,6 +6,7 @@ import { AppShell } from "./components/AppShell";
 import { AuthScreen } from "./components/AuthScreen";
 import { ContainerSection } from "./components/ContainerSection";
 import { DeploySection } from "./components/DeploySection";
+import { ProjectCreateSection } from "./components/ProjectCreateSection";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { HomeSection } from "./components/HomeSection";
 import { theme } from "./theme";
@@ -65,16 +66,20 @@ function App() {
         {controller.route.section === "home" ? (
           <HomeSection
             activeProjectId={controller.activeProjectId}
-            creatingProject={controller.creatingProject}
             deletingProjectId={controller.deletingProjectId}
-            onCreateProject={controller.handleCreateProject}
-            onProjectNameChange={controller.setProjectName}
+            onOpenProjectCreate={() => (window.location.hash = "#project-create")}
             onRequestDeleteProject={controller.requestDeleteProject}
             onSelectProject={controller.handleProjectSelect}
-            onToggleCreateForm={() => controller.setShowProjectCreateForm((current) => !current)}
-            projectName={controller.projectName}
             projects={controller.projects}
-            showProjectCreateForm={controller.showProjectCreateForm}
+          />
+        ) : controller.route.section === "project-create" ? (
+          <ProjectCreateSection
+            creatingProject={controller.creatingProject}
+            hasProjects={controller.projects.length > 0}
+            onBack={() => (window.location.hash = "#home")}
+            onCreateProject={controller.handleCreateProject}
+            onProjectNameChange={controller.setProjectName}
+            projectName={controller.projectName}
           />
         ) : controller.route.section === "container" ? (
           <ContainerSection

@@ -46,7 +46,7 @@ export type DeployForm = {
 };
 
 export type RouteState = {
-  section: "home" | "container" | "deploy";
+  section: "home" | "container" | "deploy" | "project-create";
   selectedServiceName: string | null;
 };
 
