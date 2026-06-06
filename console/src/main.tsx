@@ -1,10 +1,10 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { Box, CssBaseline, ThemeProvider } from "@mui/material";
-import { BrowserRouter, useNavigate } from "react-router-dom";
+import { BrowserRouter, useLocation, useNavigate } from "react-router-dom";
 import "./styles.css";
-import { AppShell } from "./components/AppShell";
 import { AuthScreen } from "./components/AuthScreen";
+import { AppShell } from "./components/AppShell";
 import { ContainerSection } from "./components/ContainerSection";
 import { DeploySection } from "./components/DeploySection";
 import { RepositorySection } from "./components/RepositorySection";
@@ -25,10 +25,17 @@ function App() {
 function AppContent() {
   const controller = useConsoleController();
   const navigate = useNavigate();
+  const location = useLocation();
   const forceProjectCreate = Boolean(controller.currentUser && controller.projectsLoaded && controller.projects.length === 0);
   const visibleSection = forceProjectCreate ? "project-create" : controller.route.section;
 
-  if (controller.authLoading || (controller.currentUser && !controller.projectsLoaded)) {
+  React.useEffect(() => {
+    if (!controller.authLoading && !controller.currentUser && location.pathname !== "/login") {
+      navigate("/login", { replace: true });
+    }
+  }, [controller.authLoading, controller.currentUser, location.pathname, navigate]);
+
+  if (controller.authLoading) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -44,7 +51,18 @@ function AppContent() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Box sx={{ minHeight: "100vh" }}>
-          <AuthScreen error={controller.error} onLogin={controller.startLogin} onRegister={controller.startRegister} />
+          <AuthScreen error={controller.error} onLogin={controller.startLogin} />
+        </Box>
+      </ThemeProvider>
+    );
+  }
+
+  if (!controller.projectsLoaded) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box sx={{ minHeight: "100vh" }}>
+          <LoadingScreen />
         </Box>
       </ThemeProvider>
     );

@@ -24,7 +24,7 @@ dcloud/
 
 - `protos/`: 全サービス共通の gRPC API 定義
 - `console`: React + Vite の UI
-- `api/`: FastAPI の HTTP エントリポイント
+- `api/`: FastAPI の HTTP エントリポイント。authentik のヘッダを受けて認証済みユーザとして扱います
 - `internal/pb/`: proto 由来の Go 型定義と service descriptor
 - `internal/project`: project / platform 系の gRPC サービス
 - `internal/container`: container / service 系の gRPC サービス
@@ -36,5 +36,6 @@ dcloud/
 このリポジトリは構成を新しいレイアウトへ移行中です。
 `internal/project` と `internal/container` は PostgreSQL を共有しながら `internal/pb` の共通型を使う形に寄せています。
 `api` も同じ PostgreSQL へ接続して、プロジェクトとコンテナの状態を一元管理しています。
+認証は authentik を前段に置き、`api` は `X-authentik-*` ヘッダを受けてユーザを識別します。
 SQL 由来の Go コードは [`internal/db/sqlc/`](internal/db/sqlc/) にあり、`make sqlc` で再生成できます。
 gRPC の Go / Python 生成物は `buf generate` で再生成できます。

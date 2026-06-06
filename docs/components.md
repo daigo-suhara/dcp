@@ -5,8 +5,8 @@ boundaries.
 
 ## Control Plane
 
-- `console`: React/Vite UI for operators and users
-- `api`: FastAPI boundary for browser and external clients
+- `console`: React/Vite UI for operators and users, with authentik as the login launcher
+- `api`: FastAPI boundary for browser and external clients, reading `X-authentik-*` headers from the proxy layer
 
 ## Service Plane
 
@@ -22,5 +22,6 @@ boundaries.
 
 - There is no `core` component anymore.
 - `services/` is gone; top-level directories are the deployable units.
+- Authentication is externalized to authentik; `api` does not store passwords or sessions.
 - Shared API shapes live in `protos/` and shared Go bindings live in
   `internal/pb/`.

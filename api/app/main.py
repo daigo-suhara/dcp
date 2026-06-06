@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import RedirectResponse
-
 from app.routes.container import router as container_router
 from app.routes.project import router as project_router
 from app.repository import Repository
@@ -17,7 +17,27 @@ app.include_router(container_router, prefix="/container", tags=["container"])
 
 repo = Repository.new()
 container_client = ContainerClient.new()
-user = {"id": "default-user", "username": "default-user"}
+
+
+def current_user(request: Request) -> dict[str, Any]:
+    uid = request.headers.get("X-authentik-uid", "").strip()
+    username = request.headers.get("X-authentik-username", "").strip()
+    if not uid or not username:
+        raise HTTPException(status_code=401, detail="ログインが必要です")
+    return {
+        "id": uid,
+        "username": username,
+        "email": request.headers.get("X-authentik-email", "").strip() or None,
+        "name": request.headers.get("X-authentik-name", "").strip() or None,
+    }
+
+
+def authentik_login_url() -> str:
+    return os.getenv("DCLD_AUTHENTIK_LOGIN_URL", "/outpost.goauthentik.io/start?rd=/").strip() or "/outpost.goauthentik.io/start?rd=/"
+
+
+def authentik_logout_url() -> str:
+    return os.getenv("DCLD_AUTHENTIK_LOGOUT_URL", "/outpost.goauthentik.io/sign_out").strip() or "/outpost.goauthentik.io/sign_out"
 
 
 @app.get("/healthz")
@@ -31,33 +51,31 @@ def readyz() -> dict[str, str]:
 
 
 @app.get("/api/v1/auth/me")
-def auth_me() -> dict[str, str]:
-    return user
+def auth_me(request: Request) -> dict[str, Any]:
+    return current_user(request)
 
 
 @app.get("/api/v1/auth/login")
+@app.post("/api/v1/auth/login")
 def auth_login() -> RedirectResponse:
-    return RedirectResponse(url="/", status_code=302)
-
-
-@app.get("/api/v1/auth/register")
-def auth_register() -> RedirectResponse:
-    return RedirectResponse(url="/", status_code=302)
+    return RedirectResponse(url=authentik_login_url(), status_code=302)
 
 
 @app.get("/api/v1/auth/logout")
 @app.post("/api/v1/auth/logout")
 def auth_logout() -> RedirectResponse:
-    return RedirectResponse(url="/", status_code=302)
+    return RedirectResponse(url=authentik_logout_url(), status_code=302)
 
 
 @app.get("/api/v1/projects")
-def list_projects() -> dict[str, Any]:
+def list_projects(request: Request) -> dict[str, Any]:
+    user = current_user(request)
     return {"user": user["id"], "projects": repo.list_projects(user["id"])}
 
 
 @app.post("/api/v1/projects")
-def create_project(body: dict[str, Any]) -> dict[str, Any]:
+def create_project(body: dict[str, Any], request: Request) -> dict[str, Any]:
+    user = current_user(request)
     name = str(body.get("name", "")).strip()
     if not name:
         raise HTTPException(status_code=400, detail="プロジェクト名は必須です")
@@ -71,7 +89,8 @@ def create_project(body: dict[str, Any]) -> dict[str, Any]:
 
 
 @app.delete("/api/v1/projects/{project_id}")
-def delete_project(project_id: str) -> dict[str, str]:
+def delete_project(project_id: str, request: Request) -> dict[str, str]:
+    user = current_user(request)
     try:
         deleted = repo.delete_project(user["id"], project_id)
     except ValueError as exc:
@@ -82,7 +101,8 @@ def delete_project(project_id: str) -> dict[str, str]:
 
 
 @app.get("/api/v1/projects/{project_id}/repository")
-def get_project_repository(project_id: str) -> dict[str, Any]:
+def get_project_repository(project_id: str, request: Request) -> dict[str, Any]:
+    user = current_user(request)
     try:
         repository = repo.get_repository(user["id"], project_id)
     except ValueError as exc:
@@ -93,7 +113,8 @@ def get_project_repository(project_id: str) -> dict[str, Any]:
 
 
 @app.put("/api/v1/projects/{project_id}/repository")
-def upsert_project_repository(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
+def upsert_project_repository(project_id: str, body: dict[str, Any], request: Request) -> dict[str, Any]:
+    user = current_user(request)
     repository_owner = str(body.get("repositoryOwner", "")).strip()
     repository_name = str(body.get("repositoryName", "")).strip()
     repository_branch = str(body.get("repositoryBranch", "main")).strip() or "main"
@@ -112,7 +133,11 @@ def upsert_project_repository(project_id: str, body: dict[str, Any]) -> dict[str
 
 
 @app.get("/api/v1/container")
-def list_container(x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project")) -> dict[str, Any]:
+def list_container(
+    request: Request,
+    x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project"),
+) -> dict[str, Any]:
+    user = current_user(request)
     project_id = (x_dcp_project or "").strip()
     if not project_id:
         raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
@@ -128,7 +153,12 @@ def list_container(x_dcp_project: str | None = Header(default=None, alias="X-DCP
 
 
 @app.post("/api/v1/container")
-def deploy_container(body: dict[str, Any], x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project")) -> dict[str, Any]:
+def deploy_container(
+    body: dict[str, Any],
+    request: Request,
+    x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project"),
+) -> dict[str, Any]:
+    user = current_user(request)
     project_id = (x_dcp_project or "").strip()
     if not project_id:
         raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
@@ -153,7 +183,12 @@ def deploy_container(body: dict[str, Any], x_dcp_project: str | None = Header(de
 
 
 @app.delete("/api/v1/container/{name}")
-def delete_container(name: str, x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project")) -> dict[str, str]:
+def delete_container(
+    name: str,
+    request: Request,
+    x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project"),
+) -> dict[str, str]:
+    user = current_user(request)
     project_id = (x_dcp_project or "").strip()
     if not project_id:
         raise HTTPException(status_code=400, detail="プロジェクトを選択してください")

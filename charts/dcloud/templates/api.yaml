@@ -28,6 +28,10 @@ spec:
           env:
             - name: DCLD_PUBLIC_SERVICE_DOMAIN
               value: {{ .Values.publicServiceDomain | quote }}
+            - name: DCLD_AUTHENTIK_LOGIN_URL
+              value: {{ default "/" .Values.authentik.loginUrl | quote }}
+            - name: DCLD_AUTHENTIK_LOGOUT_URL
+              value: {{ default "/outpost.goauthentik.io/sign_out" .Values.authentik.logoutUrl | quote }}
             - name: DCLD_CONTAINER_GRPC_ADDR
               value: {{ include "dcloud.fullname" . }}-container:{{ .Values.container.service.port }}
           ports:

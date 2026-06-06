@@ -4,10 +4,9 @@ import CloudQueueOutlinedIcon from "@mui/icons-material/CloudQueueOutlined";
 type AuthScreenProps = {
   error: string;
   onLogin: () => void;
-  onRegister: () => void;
 };
 
-export function AuthScreen({ error, onLogin, onRegister }: AuthScreenProps) {
+export function AuthScreen({ error, onLogin }: AuthScreenProps) {
   return (
     <Box sx={{ minHeight: "100vh" }}>
       <Container maxWidth="sm" sx={{ minHeight: "100vh", display: "grid", placeItems: "center", py: 4 }}>
@@ -26,16 +25,13 @@ export function AuthScreen({ error, onLogin, onRegister }: AuthScreenProps) {
                   ログイン
                 </Typography>
                 <Typography color="text.secondary">
-                  プロジェクトとサービスを管理します。
+                  authentik で認証します。
                 </Typography>
               </Box>
 
               <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
                 <Button variant="contained" size="large" onClick={onLogin} fullWidth>
-                  ログイン
-                </Button>
-                <Button variant="outlined" size="large" onClick={onRegister} fullWidth>
-                  ユーザー登録
+                  authentik でログイン
                 </Button>
               </Box>
 

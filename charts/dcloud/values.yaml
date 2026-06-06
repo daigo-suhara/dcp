@@ -6,6 +6,10 @@ image:
 
 publicServiceDomain: drkatana.com
 
+authentik:
+  loginUrl: /outpost.goauthentik.io/start?rd=/
+  logoutUrl: /outpost.goauthentik.io/sign_out
+
 storage:
   createClass: true
   className: ceph-rbd

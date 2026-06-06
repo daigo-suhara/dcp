@@ -171,23 +171,22 @@ export function useConsoleController() {
       }
       if ("id" in data) {
         setCurrentUser(data);
+      } else {
+        setCurrentUser(null);
       }
     } catch (authError) {
       setError(authError instanceof Error ? authError.message : "ログイン状態を確認できませんでした");
+      setCurrentUser(null);
     } finally {
       setAuthLoading(false);
     }
   }
 
-  function startLogin() {
+  async function startLogin() {
     window.location.href = "/api/v1/auth/login";
   }
 
-  function startRegister() {
-    window.location.href = "/api/v1/auth/register";
-  }
-
-  function startLogout() {
+  async function startLogout() {
     window.location.href = "/api/v1/auth/logout";
   }
 
@@ -527,7 +526,6 @@ export function useConsoleController() {
     handleOpenService,
     handleSaveRepository,
     handleSubmit,
-    loadCurrentUser,
     loading,
     message,
     projectsLoaded,
@@ -551,7 +549,6 @@ export function useConsoleController() {
     containers,
     startLogin,
     startLogout,
-    startRegister,
     submitting,
     setMessage
   } as const;
