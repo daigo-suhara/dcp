@@ -1,4 +1,4 @@
-module github.com/daigo-suhara/dcp
+module github.com/daigo-suhara/dcloud
 
 go 1.25.0
 

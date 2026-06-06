@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package dcloud.project.v1;
 
-option go_package = "github.com/daigo-suhara/dcp/internal/pb/projectpb;projectpb";
+option go_package = "github.com/daigo-suhara/dcloud/internal/pb/projectpb;projectpb";
 
 service ProjectService {
   rpc Health(HealthRequest) returns (HealthResponse);

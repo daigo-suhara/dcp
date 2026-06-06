@@ -4,7 +4,7 @@ kind: StorageClass
 metadata:
   name: {{ .Values.storage.className | quote }}
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
 provisioner: rook-ceph.rbd.csi.ceph.com
 parameters:
   clusterID: {{ .Values.storage.clusterID | quote }}

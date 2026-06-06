@@ -14,9 +14,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/daigo-suhara/dcp/internal/db"
-	dbsqlc "github.com/daigo-suhara/dcp/internal/db/sqlc"
-	containerpb "github.com/daigo-suhara/dcp/internal/pb/containerpb"
+	"github.com/daigo-suhara/dcloud/internal/db"
+	dbsqlc "github.com/daigo-suhara/dcloud/internal/db/sqlc"
+	containerpb "github.com/daigo-suhara/dcloud/internal/pb/containerpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/encoding"
@@ -190,7 +190,7 @@ func main() {
 		logger.Error("failed to listen", "addr", addr, "error", err)
 		os.Exit(1)
 	}
-	server, err := newContainerServer(env("DCLD_TARGET_NAMESPACE", "dcp-system"))
+	server, err := newContainerServer(env("DCLD_TARGET_NAMESPACE", "dcloud-system"))
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		os.Exit(1)

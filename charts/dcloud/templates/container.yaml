@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "dcp.fullname" . }}-container
+  name: {{ include "dcloud.fullname" . }}-container
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: container
 spec:
   replicas: {{ .Values.container.replicaCount }}
@@ -19,11 +19,11 @@ spec:
     spec:
       containers:
         - name: container
-          image: {{ include "dcp.image" (dict "root" . "repository" .Values.container.image.repository) }}
+          image: {{ include "dcloud.image" (dict "root" . "repository" .Values.container.image.repository) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           envFrom:
             - secretRef:
-                name: {{ include "dcp.fullname" . }}-database
+                name: {{ include "dcloud.fullname" . }}-database
           ports:
             - name: grpc
               containerPort: {{ .Values.container.service.port }}
@@ -37,9 +37,9 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "dcp.fullname" . }}-container
+  name: {{ include "dcloud.fullname" . }}-container
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: container
 spec:
   ports:

@@ -23,7 +23,7 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
   function fillTestImage() {
     onChange({
       name: "hello",
-      image: "ghcr.io/daigo-suhara/dcp-container:latest"
+      image: "ghcr.io/daigo-suhara/container:latest"
     });
   }
   return (

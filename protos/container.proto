@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package dcloud.container.v1;
 
-option go_package = "github.com/daigo-suhara/dcp/internal/pb/containerpb;containerpb";
+option go_package = "github.com/daigo-suhara/dcloud/internal/pb/containerpb;containerpb";
 
 service ContainerService {
   rpc Health(HealthRequest) returns (HealthResponse);

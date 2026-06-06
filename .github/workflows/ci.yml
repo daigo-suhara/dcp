@@ -28,7 +28,7 @@ jobs:
       - run: npm run build
         working-directory: console
       - uses: azure/setup-helm@v4
-      - run: helm template dcp charts/dcp
+      - run: helm template dcloud charts/dcloud
 
   build-and-push:
     if: github.event_name == 'push'
@@ -37,13 +37,13 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: dcp-api
+          - name: api
             dockerfile: api/Dockerfile
-          - name: dcp-project
+          - name: project
             dockerfile: internal/project/Dockerfile
-          - name: dcp-container
+          - name: container
             dockerfile: internal/container/Dockerfile
-          - name: dcp-console
+          - name: console
             dockerfile: console/Dockerfile
     steps:
       - uses: actions/checkout@v4

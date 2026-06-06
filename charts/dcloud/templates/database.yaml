@@ -1,22 +1,22 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ include "dcp.fullname" . }}-database
+  name: {{ include "dcloud.fullname" . }}-database
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: database
 stringData:
   POSTGRES_DB: {{ .Values.database.auth.database | quote }}
   POSTGRES_USER: {{ .Values.database.auth.username | quote }}
   POSTGRES_PASSWORD: {{ .Values.database.auth.password | quote }}
-  DCLD_DATABASE_URL: {{ printf "postgresql://%s:%s@%s-database:%d/%s?sslmode=disable" .Values.database.auth.username .Values.database.auth.password (include "dcp.fullname" .) (.Values.database.service.port | int) .Values.database.auth.database | quote }}
+  DCLD_DATABASE_URL: {{ printf "postgresql://%s:%s@%s-database:%d/%s?sslmode=disable" .Values.database.auth.username .Values.database.auth.password (include "dcloud.fullname" .) (.Values.database.service.port | int) .Values.database.auth.database | quote }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "dcp.fullname" . }}-database
+  name: {{ include "dcloud.fullname" . }}-database
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: database
 spec:
   ports:
@@ -30,12 +30,12 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "dcp.fullname" . }}-database
+  name: {{ include "dcloud.fullname" . }}-database
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: database
 spec:
-  serviceName: {{ include "dcp.fullname" . }}-database
+  serviceName: {{ include "dcloud.fullname" . }}-database
   replicas: 1
   selector:
     matchLabels:
@@ -53,7 +53,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           envFrom:
             - secretRef:
-                name: {{ include "dcp.fullname" . }}-database
+                name: {{ include "dcloud.fullname" . }}-database
           env:
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata

@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "dcp.fullname" . }}-console-nginx
+  name: {{ include "dcloud.fullname" . }}-console-nginx
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: console
 data:
   default.conf: |
@@ -19,7 +19,7 @@ data:
       }
 
       location /api/ {
-        proxy_pass http://{{ include "dcp.fullname" . }}-api:8000;
+        proxy_pass http://{{ include "dcloud.fullname" . }}-api:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Host $host;
@@ -27,7 +27,7 @@ data:
       }
 
       location /container/ {
-        proxy_pass http://{{ include "dcp.fullname" . }}-api:8000;
+        proxy_pass http://{{ include "dcloud.fullname" . }}-api:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Host $host;
@@ -41,7 +41,7 @@ data:
       server_name ~^(?!{{ first (splitList "." .Values.console.publicHostname) }}$)[a-z0-9-]+\.{{ .Values.console.publicServiceDomain | replace "." "\\." }}$;
 
       location / {
-        proxy_pass http://{{ include "dcp.fullname" . }}-api:8000;
+        proxy_pass http://{{ include "dcloud.fullname" . }}-api:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Host $host;

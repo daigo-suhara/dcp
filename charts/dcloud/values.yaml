@@ -6,14 +6,14 @@ image:
 
 storage:
   createClass: true
-  className: dcp-ceph-rbd
+  className: ceph-rbd
   clusterID: rook-ceph
   pool: rbd
 
 console:
   replicaCount: 1
   image:
-    repository: dcp-console
+    repository: console
   service:
     type: LoadBalancer
     port: 8080
@@ -23,21 +23,21 @@ console:
 api:
   replicaCount: 1
   image:
-    repository: dcp-api
+    repository: api
   service:
     port: 8000
 
 project:
   replicaCount: 1
   image:
-    repository: dcp-project
+    repository: project
   service:
     port: 8081
 
 container:
   replicaCount: 1
   image:
-    repository: dcp-container
+    repository: container
   service:
     port: 8082
 
@@ -51,4 +51,4 @@ database:
     password: dcloud
   persistence:
     size: 1Gi
-    storageClassName: dcp-ceph-rbd
+    storageClassName: ceph-rbd

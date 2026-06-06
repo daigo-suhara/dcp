@@ -1,5 +1,5 @@
 apiVersion: v2
-name: dcp
+name: dcloud
 description: A GCP-like cloud platform running on Kubernetes.
 type: application
 version: 0.1.0

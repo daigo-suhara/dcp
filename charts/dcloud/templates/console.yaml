@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "dcp.fullname" . }}-console
+  name: {{ include "dcloud.fullname" . }}-console
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: console
 spec:
   replicas: {{ .Values.console.replicaCount }}
@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: console
-          image: {{ include "dcp.image" (dict "root" . "repository" .Values.console.image.repository) }}
+          image: {{ include "dcloud.image" (dict "root" . "repository" .Values.console.image.repository) }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
@@ -31,14 +31,14 @@ spec:
       volumes:
         - name: nginx-config
           configMap:
-            name: {{ include "dcp.fullname" . }}-console-nginx
+                name: {{ include "dcloud.fullname" . }}-console-nginx
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "dcp.fullname" . }}-console
+  name: {{ include "dcloud.fullname" . }}-console
   labels:
-    {{- include "dcp.labels" . | nindent 4 }}
+    {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: console
 spec:
   type: {{ .Values.console.service.type }}

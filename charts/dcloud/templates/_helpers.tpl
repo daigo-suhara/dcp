@@ -1,8 +1,8 @@
-{{- define "dcp.name" -}}
+{{- define "dcloud.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
 
-{{- define "dcp.fullname" -}}
+{{- define "dcloud.fullname" -}}
 {{- if .Values.fullnameOverride -}}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" -}}
 {{- else -}}
@@ -15,14 +15,14 @@
 {{- end -}}
 {{- end -}}
 
-{{- define "dcp.labels" -}}
+{{- define "dcloud.labels" -}}
 helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
-app.kubernetes.io/name: {{ include "dcp.name" . }}
+app.kubernetes.io/name: {{ include "dcloud.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
-{{- define "dcp.image" -}}
+{{- define "dcloud.image" -}}
 {{- printf "%s/%s/%s:%s" .root.Values.image.registry .root.Values.image.repositoryOwner .repository .root.Values.image.tag -}}
 {{- end -}}

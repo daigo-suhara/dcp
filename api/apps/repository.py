@@ -191,7 +191,7 @@ class Repository:
             return {
                 "userId": normalized_user,
                 "projectId": normalized_project,
-                "namespace": env("DCLD_TARGET_NAMESPACE", "dcp-system"),
+                "namespace": env("DCLD_TARGET_NAMESPACE", "dcloud-system"),
                 "containers": [dict(row) for row in cur.fetchall()],
             }
 
@@ -215,7 +215,7 @@ class Repository:
             raise ValueError("port must be between 1 and 65535")
         _ = min_scale, max_scale
 
-        namespace = env("DCLD_TARGET_NAMESPACE", "dcp-system")
+        namespace = env("DCLD_TARGET_NAMESPACE", "dcloud-system")
         timestamp = now()
         url = f"grpc://{normalized_name}.{namespace}.svc.cluster.local/{normalized_project}"
 

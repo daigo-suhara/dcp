@@ -1,5 +1,5 @@
 {
-  "name": "@dcp/console",
+  "name": "@dcloud/console",
   "private": true,
   "version": "0.1.0",
   "type": "module",

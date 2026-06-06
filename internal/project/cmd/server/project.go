@@ -16,9 +16,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/daigo-suhara/dcp/internal/db"
-	dbsqlc "github.com/daigo-suhara/dcp/internal/db/sqlc"
-	projectpb "github.com/daigo-suhara/dcp/internal/pb/projectpb"
+	"github.com/daigo-suhara/dcloud/internal/db"
+	dbsqlc "github.com/daigo-suhara/dcloud/internal/db/sqlc"
+	projectpb "github.com/daigo-suhara/dcloud/internal/pb/projectpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/encoding"

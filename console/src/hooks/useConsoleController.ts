@@ -8,6 +8,11 @@ type LoadServicesOptions = {
   quiet?: boolean;
 };
 
+type ApiErrorResponse = {
+  detail?: string;
+  error?: string;
+};
+
 export function useConsoleController() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [containers, setContainers] = useState<DeployedService[]>([]);
@@ -72,7 +77,7 @@ export function useConsoleController() {
   }, [currentUser]);
 
   useEffect(() => {
-    if (!activeProjectId) {
+    if (!activeProjectId || !currentUser || !projectsLoaded) {
       return;
     }
 
@@ -82,7 +87,7 @@ export function useConsoleController() {
     }, 5000);
 
     return () => window.clearInterval(timer);
-  }, [activeProjectId]);
+  }, [activeProjectId, currentUser, projectsLoaded]);
 
   useEffect(() => {
     if (!currentUser || !projectsLoaded || projects.length > 0 || route.section === "project-create") {
@@ -101,6 +106,20 @@ export function useConsoleController() {
     return headers;
   }
 
+  function getApiErrorMessage(data: unknown, fallback: string) {
+    if (!data || typeof data !== "object") {
+      return fallback;
+    }
+    const payload = data as ApiErrorResponse;
+    if (typeof payload.detail === "string" && payload.detail.trim()) {
+      return payload.detail;
+    }
+    if (typeof payload.error === "string" && payload.error.trim()) {
+      return payload.error;
+    }
+    return fallback;
+  }
+
   async function loadCurrentUser() {
     setAuthLoading(true);
     try {
@@ -111,9 +130,9 @@ export function useConsoleController() {
         setCurrentUser(null);
         return;
       }
-      const data = (await response.json()) as AuthUser | { error?: string };
+      const data = (await response.json()) as AuthUser | ApiErrorResponse;
       if (!response.ok) {
-        throw new Error("error" in data && data.error ? data.error : "ログイン状態を確認できませんでした");
+        throw new Error(getApiErrorMessage(data, "ログイン状態を確認できませんでした"));
       }
       if ("id" in data) {
         setCurrentUser(data);
@@ -138,7 +157,7 @@ export function useConsoleController() {
   }
 
   function projectStorageKey(userId: string) {
-    return `dcp-active-project:${userId}`;
+    return `dcloud-active-project:${userId}`;
   }
 
   function handleProjectSelect(projectId: string) {
@@ -165,9 +184,9 @@ export function useConsoleController() {
         credentials: "include",
         headers: apiHeaders()
       });
-      const data = (await response.json()) as ProjectsResponse | { error?: string };
+      const data = (await response.json()) as ProjectsResponse | ApiErrorResponse;
       if (!response.ok) {
-        throw new Error("error" in data && data.error ? data.error : "プロジェクト一覧を読み込めませんでした");
+        throw new Error(getApiErrorMessage(data, "プロジェクト一覧を読み込めませんでした"));
       }
       if ("projects" in data) {
         setProjects(data.projects);
@@ -201,9 +220,9 @@ export function useConsoleController() {
         credentials: "include",
         headers: apiHeaders()
       });
-      const data = (await response.json()) as PlatformResponse | { error?: string };
+      const data = (await response.json()) as PlatformResponse | ApiErrorResponse;
       if (!response.ok) {
-        throw new Error("error" in data && data.error ? data.error : "サービス一覧を読み込めませんでした");
+        throw new Error(getApiErrorMessage(data, "サービス一覧を読み込めませんでした"));
       }
       if ("namespace" in data) {
         setContainers(data.containers ?? []);
@@ -233,9 +252,9 @@ export function useConsoleController() {
         }),
         body: JSON.stringify({ name: projectName.trim() })
       });
-      const data = (await response.json()) as Project | { error?: string };
+      const data = (await response.json()) as Project | ApiErrorResponse;
       if (!response.ok) {
-        throw new Error("error" in data && data.error ? data.error : "プロジェクトの作成に失敗しました");
+        throw new Error(getApiErrorMessage(data, "プロジェクトの作成に失敗しました"));
       }
       if ("id" in data) {
         setProjects((current) => [...current, data]);
@@ -272,9 +291,9 @@ export function useConsoleController() {
         })
       });
 
-      const data = (await response.json()) as DeployedService | { error?: string };
+      const data = (await response.json()) as DeployedService | ApiErrorResponse;
       if (!response.ok) {
-        throw new Error("error" in data && data.error ? data.error : "サービスの作成に失敗しました");
+        throw new Error(getApiErrorMessage(data, "サービスの作成に失敗しました"));
       }
       if ("name" in data) {
         setMessage(`${data.name} を作成しました`);
@@ -319,8 +338,8 @@ export function useConsoleController() {
         headers: apiHeaders()
       });
       if (!response.ok && response.status !== 204) {
-        const data = (await response.json()) as { error?: string };
-        throw new Error(data.error ?? "サービスの削除に失敗しました");
+        const data = (await response.json()) as ApiErrorResponse;
+        throw new Error(getApiErrorMessage(data, "サービスの削除に失敗しました"));
       }
       setMessage(`${name} を削除しました`);
       if (route.selectedServiceName === name) {
@@ -347,8 +366,8 @@ export function useConsoleController() {
         headers: apiHeaders()
       });
       if (!response.ok && response.status !== 204) {
-        const data = (await response.json()) as { error?: string };
-        throw new Error(data.error ?? "プロジェクトの削除に失敗しました");
+        const data = (await response.json()) as ApiErrorResponse;
+        throw new Error(getApiErrorMessage(data, "プロジェクトの削除に失敗しました"));
       }
       setMessage("プロジェクトを削除しました");
       if (activeProjectId === projectId) {

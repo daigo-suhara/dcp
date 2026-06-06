@@ -8,8 +8,8 @@ RUN go build -trimpath -ldflags="-s -w" -o /out/container ./internal/container/c
 
 FROM alpine:3.20
 
-RUN adduser -D -H -u 10001 dcp
-USER dcp
+RUN adduser -D -H -u 10001 dcloud
+USER dcloud
 COPY --from=build /out/container /usr/local/bin/container
 EXPOSE 8082
 ENTRYPOINT ["/usr/local/bin/container"]
