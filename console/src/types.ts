@@ -46,8 +46,24 @@ export type DeployForm = {
 };
 
 export type RouteState = {
-  section: "home" | "container" | "deploy" | "project-create";
+  section: "home" | "container" | "deploy" | "project-create" | "repository";
   selectedServiceName: string | null;
+};
+
+export type RepositoryConfig = {
+  projectId: string;
+  userId: string;
+  repositoryOwner: string;
+  repositoryName: string;
+  repositoryBranch: string;
+  connectedAt: string;
+  updatedAt: string;
+};
+
+export type RepositoryForm = {
+  repositoryOwner: string;
+  repositoryName: string;
+  repositoryBranch: string;
 };
 
 export const initialForm: DeployForm = {

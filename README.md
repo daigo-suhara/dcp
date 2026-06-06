@@ -4,11 +4,15 @@
 
 ```text
 dcloud/
+├── buf.yaml
+├── buf.gen.yaml
 ├── protos/
 │   ├── project.proto
 │   └── container.proto
 ├── console/
 ├── api/
+│   ├── app/
+│   └── generated/
 ├── internal/
 │   ├── pb/
 │   ├── project/
@@ -25,6 +29,7 @@ dcloud/
 - `internal/project`: project / platform 系の gRPC サービス
 - `internal/container`: container / service 系の gRPC サービス
 - component の粒度は [`docs/components.md`](docs/components.md) を参照してください。
+- `console` と `api` の対応表は [`docs/api-contract.md`](docs/api-contract.md) を参照してください。
 
 ## 状態
 
@@ -32,3 +37,4 @@ dcloud/
 `internal/project` と `internal/container` は PostgreSQL を共有しながら `internal/pb` の共通型を使う形に寄せています。
 `api` も同じ PostgreSQL へ接続して、プロジェクトとコンテナの状態を一元管理しています。
 SQL 由来の Go コードは [`internal/db/sqlc/`](internal/db/sqlc/) にあり、`make sqlc` で再生成できます。
+gRPC の Go / Python 生成物は `buf generate` で再生成できます。

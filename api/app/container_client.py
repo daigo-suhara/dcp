@@ -5,8 +5,8 @@ from typing import Any
 
 import grpc
 
-import container_pb2
-import container_pb2_grpc
+from generated import container_pb2
+from generated import container_pb2_grpc
 
 
 def env(key: str, fallback: str) -> str:
@@ -69,7 +69,7 @@ class ContainerClient:
             )
         except grpc.RpcError as error:
             raise self._map_error(error) from error
-        return self._service_to_dict(response)
+        return self._service_to_dict(response.service)
 
     def delete_service(self, user_id: str, project_id: str, name: str) -> None:
         try:

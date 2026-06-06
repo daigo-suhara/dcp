@@ -1,0 +1,15 @@
+version: v2
+
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: .
+    opt:
+      - module=github.com/daigo-suhara/dcloud
+  - remote: buf.build/grpc/go
+    out: .
+    opt:
+      - module=github.com/daigo-suhara/dcloud
+  - remote: buf.build/protocolbuffers/python
+    out: api/generated
+  - remote: buf.build/grpc/python
+    out: api/generated

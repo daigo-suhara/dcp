@@ -5,10 +5,10 @@ from typing import Any
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 
-from apps.container import router as container_router
-from apps.project import router as project_router
-from apps.repository import Repository
-from container_client import ContainerClient
+from app.routes.container import router as container_router
+from app.routes.project import router as project_router
+from app.repository import Repository
+from app.container_client import ContainerClient
 
 app = FastAPI(title="DCloud API")
 
@@ -79,6 +79,36 @@ def delete_project(project_id: str) -> dict[str, str]:
     if not deleted:
         raise HTTPException(status_code=404, detail="プロジェクトが見つかりません")
     return {"status": "deleted"}
+
+
+@app.get("/api/v1/projects/{project_id}/repository")
+def get_project_repository(project_id: str) -> dict[str, Any]:
+    try:
+        repository = repo.get_repository(user["id"], project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if repository is None:
+        raise HTTPException(status_code=404, detail="リポジトリ設定が見つかりません")
+    return repository
+
+
+@app.put("/api/v1/projects/{project_id}/repository")
+def upsert_project_repository(project_id: str, body: dict[str, Any]) -> dict[str, Any]:
+    repository_owner = str(body.get("repositoryOwner", "")).strip()
+    repository_name = str(body.get("repositoryName", "")).strip()
+    repository_branch = str(body.get("repositoryBranch", "main")).strip() or "main"
+    try:
+        return repo.upsert_repository(
+            user["id"],
+            project_id,
+            repository_owner,
+            repository_name,
+            repository_branch,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="プロジェクトが見つかりません") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/container")

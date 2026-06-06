@@ -8,8 +8,8 @@ service ProjectService {
   rpc Health(HealthRequest) returns (HealthResponse);
   rpc Platform(PlatformRequest) returns (PlatformResponse);
   rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
-  rpc CreateProject(CreateProjectRequest) returns (Project);
-  rpc DeleteProject(DeleteProjectRequest) returns (Empty);
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
 }
 
 message Empty {}
@@ -51,7 +51,13 @@ message CreateProjectRequest {
   string name = 2;
 }
 
+message CreateProjectResponse {
+  Project project = 1;
+}
+
 message DeleteProjectRequest {
   string user_id = 1;
   string project_id = 2;
 }
+
+message DeleteProjectResponse {}

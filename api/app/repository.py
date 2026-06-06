@@ -23,6 +23,19 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE INDEX IF NOT EXISTS idx_projects_user_created_at
     ON projects (user_id, created_at, id);
 
+CREATE TABLE IF NOT EXISTS project_repositories (
+    project_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    repository_owner TEXT NOT NULL,
+    repository_name TEXT NOT NULL,
+    repository_branch TEXT NOT NULL,
+    connected_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_repositories_user_project
+    ON project_repositories (user_id, project_id);
+
 """
 
 
@@ -94,6 +107,92 @@ class Repository:
             return False
         with self._connect() as conn:
             return self._project_exists(conn, normalized_user, normalized_project)
+
+    def get_repository(self, user_id: str, project_id: str) -> dict[str, Any] | None:
+        normalized_user = user_id.strip()
+        normalized_project = project_id.strip()
+        if not normalized_user or not normalized_project:
+            raise ValueError("userId and projectId are required")
+        with self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT project_id AS "projectId",
+                       user_id AS "userId",
+                       repository_owner AS "repositoryOwner",
+                       repository_name AS "repositoryName",
+                       repository_branch AS "repositoryBranch",
+                       connected_at AS "connectedAt",
+                       updated_at AS "updatedAt"
+                FROM project_repositories
+                WHERE user_id = %s AND project_id = %s
+                """,
+                (normalized_user, normalized_project),
+            )
+            row = cur.fetchone()
+            return dict(row) if row is not None else None
+
+    def upsert_repository(
+        self,
+        user_id: str,
+        project_id: str,
+        repository_owner: str,
+        repository_name: str,
+        repository_branch: str,
+    ) -> dict[str, Any]:
+        normalized_user = user_id.strip()
+        normalized_project = project_id.strip()
+        normalized_owner = repository_owner.strip()
+        normalized_name = repository_name.strip()
+        normalized_branch = repository_branch.strip() or "main"
+        if not normalized_user or not normalized_project:
+            raise ValueError("userId and projectId are required")
+        if not normalized_owner or not normalized_name:
+            raise ValueError("repositoryOwner and repositoryName are required")
+        if not self.project_exists(normalized_user, normalized_project):
+            raise KeyError("project not found")
+
+        timestamp = now()
+        with self.lock, self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO project_repositories (
+                    project_id,
+                    user_id,
+                    repository_owner,
+                    repository_name,
+                    repository_branch,
+                    connected_at,
+                    updated_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (project_id) DO UPDATE SET
+                    user_id = EXCLUDED.user_id,
+                    repository_owner = EXCLUDED.repository_owner,
+                    repository_name = EXCLUDED.repository_name,
+                    repository_branch = EXCLUDED.repository_branch,
+                    updated_at = EXCLUDED.updated_at
+                RETURNING
+                    project_id AS "projectId",
+                    user_id AS "userId",
+                    repository_owner AS "repositoryOwner",
+                    repository_name AS "repositoryName",
+                    repository_branch AS "repositoryBranch",
+                    connected_at AS "connectedAt",
+                    updated_at AS "updatedAt"
+                """,
+                (
+                    normalized_project,
+                    normalized_user,
+                    normalized_owner,
+                    normalized_name,
+                    normalized_branch,
+                    timestamp,
+                    timestamp,
+                ),
+            )
+            row = cur.fetchone()
+            assert row is not None
+            return dict(row)
 
     def list_projects(self, user_id: str) -> list[dict[str, Any]]:
         normalized_user = user_id.strip()

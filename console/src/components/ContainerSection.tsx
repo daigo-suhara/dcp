@@ -210,7 +210,7 @@ export function ContainerSection({
                 <Button component={RouterLink} to="/container/deploy" variant="contained" startIcon={<CloudUploadOutlinedIcon />} fullWidth onClick={onDeployClick}>
                   コンテナのデプロイ
                 </Button>
-                <Button component={RouterLink} to="/container" variant="outlined" startIcon={<GitHubIcon />} fullWidth onClick={onRepoConnectClick}>
+                <Button component={RouterLink} to="/container/repository" variant="outlined" startIcon={<GitHubIcon />} fullWidth onClick={onRepoConnectClick}>
                   リポジトリの接続
                 </Button>
               </Box>

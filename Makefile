@@ -1,7 +1,8 @@
 GO_BUILD_CACHE ?= $(CURDIR)/.cache/go-build
 GO_MOD_CACHE ?= $(CURDIR)/.cache/go-mod
+BUF_CACHE_DIR ?= $(CURDIR)/.cache/buf
 
-.PHONY: test build-project build-container build sqlc
+.PHONY: test build-project build-container build sqlc proto buf-lint
 
 test:
 	mkdir -p $(GO_BUILD_CACHE) $(GO_MOD_CACHE)
@@ -9,6 +10,12 @@ test:
 
 sqlc:
 	cd internal/db/sqlc && sqlc generate
+
+proto:
+	BUF_CACHE_DIR=$(BUF_CACHE_DIR) buf generate --template buf.gen.yaml
+
+buf-lint:
+	BUF_CACHE_DIR=$(BUF_CACHE_DIR) buf lint
 
 build-project:
 	mkdir -p $(GO_BUILD_CACHE) $(GO_MOD_CACHE) bin

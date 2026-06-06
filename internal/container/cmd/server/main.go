@@ -27,7 +27,9 @@ type Service = containerpb.Service
 type ListServicesRequest = containerpb.ListServicesRequest
 type ListServicesResponse = containerpb.ListServicesResponse
 type DeployServiceRequest = containerpb.DeployServiceRequest
+type DeployServiceResponse = containerpb.DeployServiceResponse
 type DeleteServiceRequest = containerpb.DeleteServiceRequest
+type DeleteServiceResponse = containerpb.DeleteServiceResponse
 type ContainerServer = containerpb.ContainerServiceServer
 
 type projectScope struct {
@@ -127,7 +129,7 @@ func (s *containerServer) ListServices(ctx context.Context, req *ListServicesReq
 	return &ListServicesResponse{UserId: userID, ProjectId: projectID, Namespace: s.namespace, Containers: items}, nil
 }
 
-func (s *containerServer) DeployService(ctx context.Context, req *DeployServiceRequest) (*Service, error) {
+func (s *containerServer) DeployService(ctx context.Context, req *DeployServiceRequest) (*DeployServiceResponse, error) {
 	userID := strings.TrimSpace(req.UserId)
 	projectID := strings.TrimSpace(req.ProjectId)
 	name := strings.TrimSpace(req.Name)
@@ -188,10 +190,10 @@ func (s *containerServer) DeployService(ctx context.Context, req *DeployServiceR
 		ProjectId:  created.ProjectID,
 		Generation: created.Generation,
 	}
-	return &svc, nil
+	return &DeployServiceResponse{Service: &svc}, nil
 }
 
-func (s *containerServer) DeleteService(ctx context.Context, req *DeleteServiceRequest) (*Empty, error) {
+func (s *containerServer) DeleteService(ctx context.Context, req *DeleteServiceRequest) (*DeleteServiceResponse, error) {
 	userID := strings.TrimSpace(req.UserId)
 	projectID := strings.TrimSpace(req.ProjectId)
 	name := strings.TrimSpace(req.Name)
@@ -213,7 +215,7 @@ func (s *containerServer) DeleteService(ctx context.Context, req *DeleteServiceR
 		return nil, status.Error(codes.Internal, "failed to delete service")
 	}
 	_ = rowsAffected
-	return &Empty{}, nil
+	return &DeleteServiceResponse{}, nil
 }
 
 func RegisterContainerServer(server *grpc.Server, impl ContainerServer) {

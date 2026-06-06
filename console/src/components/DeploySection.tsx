@@ -23,7 +23,7 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
   function fillTestImage() {
     onChange({
       name: "hello",
-      image: "ghcr.io/daigo-suhara/container:latest"
+      image: "ghcr.io/daigo-suhara/hello-world:latest"
     });
   }
   return (
@@ -47,6 +47,9 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   デプロイ設定
                 </Typography>
+                <Button type="button" variant="text" size="small" onClick={fillTestImage} sx={actionLinkButtonSx}>
+                  サンプルコンテナを使用
+                </Button>
               </Box>
 
               <Divider />
@@ -77,7 +80,6 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                   value={form.image}
                   onChange={(event) => onChange({ image: event.target.value })}
                   placeholder="ghcr.io/org/app:tag"
-                  helperText=""
                   fullWidth
                   slotProps={{
                     htmlInput: {
@@ -88,18 +90,6 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                     }
                   }}
                 />
-
-                <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Button
-                    type="button"
-                    variant="text"
-                    size="small"
-                    onClick={fillTestImage}
-                    sx={actionLinkButtonSx}
-                  >
-                    サンプルコンテナを使用
-                  </Button>
-                </Box>
 
                 <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" } }}>
                   <TextField

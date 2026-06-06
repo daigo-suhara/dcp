@@ -28,6 +28,8 @@ jobs:
       - run: npm run build
         working-directory: console
       - uses: azure/setup-helm@v4
+      - uses: bufbuild/buf-setup-action@v1
+      - run: buf lint
       - run: helm template dcloud charts/dcloud
 
   build-and-push:

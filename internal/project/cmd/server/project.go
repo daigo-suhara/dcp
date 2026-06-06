@@ -32,7 +32,9 @@ type Project = projectpb.Project
 type ListProjectsRequest = projectpb.ListProjectsRequest
 type ListProjectsResponse = projectpb.ListProjectsResponse
 type CreateProjectRequest = projectpb.CreateProjectRequest
+type CreateProjectResponse = projectpb.CreateProjectResponse
 type DeleteProjectRequest = projectpb.DeleteProjectRequest
+type DeleteProjectResponse = projectpb.DeleteProjectResponse
 type ProjectServer = projectpb.ProjectServiceServer
 
 type projectServer struct {
@@ -85,7 +87,7 @@ func (s *projectServer) ListProjects(ctx context.Context, req *ListProjectsReque
 	return &ListProjectsResponse{UserId: userID, Projects: items}, nil
 }
 
-func (s *projectServer) CreateProject(ctx context.Context, req *CreateProjectRequest) (*Project, error) {
+func (s *projectServer) CreateProject(ctx context.Context, req *CreateProjectRequest) (*CreateProjectResponse, error) {
 	userID := strings.TrimSpace(req.UserId)
 	name := strings.TrimSpace(req.Name)
 	if userID == "" || name == "" {
@@ -105,14 +107,14 @@ func (s *projectServer) CreateProject(ctx context.Context, req *CreateProjectReq
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, status.Error(codes.AlreadyExists, "project already exists")
-		}
+		return nil, status.Error(codes.AlreadyExists, "project already exists")
+	}
 		return nil, status.Error(codes.Internal, "failed to persist project")
 	}
-	return &project, nil
+	return &CreateProjectResponse{Project: &project}, nil
 }
 
-func (s *projectServer) DeleteProject(ctx context.Context, req *DeleteProjectRequest) (*Empty, error) {
+func (s *projectServer) DeleteProject(ctx context.Context, req *DeleteProjectRequest) (*DeleteProjectResponse, error) {
 	userID := strings.TrimSpace(req.UserId)
 	projectID := strings.TrimSpace(req.ProjectId)
 	if userID == "" || projectID == "" {
@@ -125,7 +127,7 @@ func (s *projectServer) DeleteProject(ctx context.Context, req *DeleteProjectReq
 	if rowsAffected == 0 {
 		return nil, status.Error(codes.NotFound, "project not found")
 	}
-	return &Empty{}, nil
+	return &DeleteProjectResponse{}, nil
 }
 
 func RegisterProjectServer(server *grpc.Server, impl ProjectServer) {

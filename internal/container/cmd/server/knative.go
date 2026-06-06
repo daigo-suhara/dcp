@@ -66,7 +66,7 @@ func newKnativeServiceManager(namespace string, publicDomain string) (*knativeSe
 }
 
 func (m *knativeServiceManager) publicURL(resourceName string) string {
-	return fmt.Sprintf("https://%s.%s", resourceName, m.publicDomain)
+	return fmt.Sprintf("http://%s.%s", resourceName, m.publicDomain)
 }
 
 func (m *knativeServiceManager) list(ctx context.Context, scope projectScope) ([]deployedService, error) {

@@ -77,5 +77,6 @@ export const actionLinkSx = {
 export const actionLinkButtonSx = {
   px: 0,
   minWidth: 0,
-  ...actionLinkSx
+  ...actionLinkSx,
+  textDecoration: "none"
 } as const;

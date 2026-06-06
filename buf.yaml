@@ -1,0 +1,15 @@
+version: v2
+
+modules:
+  - path: protos
+
+lint:
+  use:
+    - STANDARD
+  except:
+    - DIRECTORY_SAME_PACKAGE
+    - PACKAGE_DIRECTORY_MATCH
+
+breaking:
+  use:
+    - FILE

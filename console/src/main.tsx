@@ -7,6 +7,7 @@ import { AppShell } from "./components/AppShell";
 import { AuthScreen } from "./components/AuthScreen";
 import { ContainerSection } from "./components/ContainerSection";
 import { DeploySection } from "./components/DeploySection";
+import { RepositorySection } from "./components/RepositorySection";
 import { ProjectCreateSection } from "./components/ProjectCreateSection";
 import { LoadingScreen } from "./components/LoadingScreen";
 import { HomeSection } from "./components/HomeSection";
@@ -101,7 +102,7 @@ function AppContent() {
             onDeployClick={() => navigate("/container/deploy")}
             onDeleteService={controller.requestDelete}
             onOpenService={controller.handleOpenService}
-            onRepoConnectClick={() => navigate("/container")}
+            onRepoConnectClick={controller.handleOpenRepository}
             selectedService={controller.selectedService}
             selectedStatus={controller.selectedStatus}
             containers={controller.containers}
@@ -114,6 +115,17 @@ function AppContent() {
             onChange={controller.handleFormChange}
             onSubmit={controller.handleSubmit}
             submitting={controller.submitting}
+          />
+        ) : visibleSection === "repository" ? (
+          <RepositorySection
+            error={controller.error}
+            loading={controller.repositoryLoading}
+            saving={controller.savingRepository}
+            form={controller.repositoryForm}
+            config={controller.repositoryConfig}
+            onBack={() => navigate("/container")}
+            onChange={controller.handleRepositoryFormChange}
+            onSubmit={controller.handleSaveRepository}
           />
         ) : null}
       </AppShell>

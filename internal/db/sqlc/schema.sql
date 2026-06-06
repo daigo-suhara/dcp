@@ -9,6 +9,19 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE INDEX IF NOT EXISTS idx_projects_user_created_at
     ON projects (user_id, created_at, id);
 
+CREATE TABLE IF NOT EXISTS project_repositories (
+    project_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    repository_owner TEXT NOT NULL,
+    repository_name TEXT NOT NULL,
+    repository_branch TEXT NOT NULL,
+    connected_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_project_repositories_user_project
+    ON project_repositories (user_id, project_id);
+
 CREATE TABLE IF NOT EXISTS containers (
     project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     name TEXT NOT NULL,

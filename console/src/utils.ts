@@ -13,6 +13,9 @@ export function parseRoute(pathname: string): RouteState {
   if (normalizedSection === "container" && rest[0] === "deploy") {
     return { section: "deploy", selectedServiceName: null };
   }
+  if (normalizedSection === "container" && rest[0] === "repository") {
+    return { section: "repository", selectedServiceName: null };
+  }
   if (normalizedSection === "container" && rest.length > 0) {
     return {
       section: "container",
@@ -20,7 +23,7 @@ export function parseRoute(pathname: string): RouteState {
     };
   }
 
-  if (normalizedSection === "home" || normalizedSection === "container" || normalizedSection === "deploy" || normalizedSection === "project-create") {
+  if (normalizedSection === "home" || normalizedSection === "container" || normalizedSection === "deploy" || normalizedSection === "project-create" || normalizedSection === "repository") {
     return { section: normalizedSection, selectedServiceName: null };
   }
 

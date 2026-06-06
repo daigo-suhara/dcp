@@ -7,8 +7,8 @@ option go_package = "github.com/daigo-suhara/dcloud/internal/pb/containerpb;cont
 service ContainerService {
   rpc Health(HealthRequest) returns (HealthResponse);
   rpc ListServices(ListServicesRequest) returns (ListServicesResponse);
-  rpc DeployService(DeployServiceRequest) returns (Service);
-  rpc DeleteService(DeleteServiceRequest) returns (Empty);
+  rpc DeployService(DeployServiceRequest) returns (DeployServiceResponse);
+  rpc DeleteService(DeleteServiceRequest) returns (DeleteServiceResponse);
 }
 
 message Empty {}
@@ -56,8 +56,14 @@ message DeployServiceRequest {
   int32 max_scale = 7;
 }
 
+message DeployServiceResponse {
+  Service service = 1;
+}
+
 message DeleteServiceRequest {
   string user_id = 1;
   string project_id = 2;
   string name = 3;
 }
+
+message DeleteServiceResponse {}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { initialForm, type AuthUser, type DeployedService, type PlatformResponse, type Project, type ProjectsResponse, type RouteState } from "../types";
+import { initialForm, type AuthUser, type DeployedService, type PlatformResponse, type Project, type ProjectsResponse, type RepositoryConfig, type RepositoryForm, type RouteState } from "../types";
 import { getServiceStatus, parseRoute } from "../utils";
 
 type LoadServicesOptions = {
@@ -31,6 +31,12 @@ export function useConsoleController() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState("");
   const [projectName, setProjectName] = useState("");
+  const [repositoryConfig, setRepositoryConfig] = useState<RepositoryConfig | null>(null);
+  const [repositoryForm, setRepositoryForm] = useState<RepositoryForm>({
+    repositoryOwner: "",
+    repositoryName: "",
+    repositoryBranch: "main"
+  });
   const [creatingProject, setCreatingProject] = useState(false);
   const [deletingProjectId, setDeletingProjectId] = useState("");
   const [pendingProjectDeleteId, setPendingProjectDeleteId] = useState("");
@@ -38,6 +44,8 @@ export function useConsoleController() {
   const [authLoading, setAuthLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [repositoryLoading, setRepositoryLoading] = useState(true);
+  const [savingRepository, setSavingRepository] = useState(false);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingName, setDeletingName] = useState("");
@@ -73,6 +81,13 @@ export function useConsoleController() {
       setContainers([]);
       setActiveProjectId("");
       setProjectName("");
+      setRepositoryConfig(null);
+      setRepositoryForm({
+        repositoryOwner: "",
+        repositoryName: "",
+        repositoryBranch: "main"
+      });
+      setRepositoryLoading(true);
       setProjectsLoaded(false);
       return;
     }
@@ -80,6 +95,13 @@ export function useConsoleController() {
     setProjects([]);
     setContainers([]);
     setActiveProjectId("");
+    setRepositoryConfig(null);
+    setRepositoryForm({
+      repositoryOwner: "",
+      repositoryName: "",
+      repositoryBranch: "main"
+    });
+    setRepositoryLoading(true);
     setProjectsLoaded(false);
     const savedProject = localStorage.getItem(projectStorageKey(currentUser.id));
     if (savedProject) {
@@ -94,6 +116,7 @@ export function useConsoleController() {
     }
 
     void loadServices();
+    void loadRepository();
     const timer = window.setInterval(() => {
       void loadServices({ quiet: true });
     }, 5000);
@@ -183,6 +206,10 @@ export function useConsoleController() {
     navigate(`/container/${encodeURIComponent(name)}`);
   }
 
+  function handleOpenRepository() {
+    navigate("/container/repository");
+  }
+
   function handleFormChange(patch: Partial<typeof form>) {
     setForm((current) => ({ ...current, ...patch }));
   }
@@ -247,6 +274,44 @@ export function useConsoleController() {
       if (!options?.quiet) {
         setLoading(false);
       }
+    }
+  }
+
+  async function loadRepository() {
+    if (!activeProjectId || !currentUser) {
+      return;
+    }
+    setRepositoryLoading(true);
+    try {
+      const response = await fetch(`/api/v1/projects/${encodeURIComponent(activeProjectId)}/repository`, {
+        credentials: "include",
+        headers: apiHeaders()
+      });
+      if (response.status === 404) {
+        setRepositoryConfig(null);
+        setRepositoryForm({
+          repositoryOwner: "",
+          repositoryName: "",
+          repositoryBranch: "main"
+        });
+        return;
+      }
+      const data = (await readJsonResponse(response)) as RepositoryConfig | ApiErrorResponse;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, "リポジトリ設定を読み込めませんでした"));
+      }
+      if ("projectId" in data) {
+        setRepositoryConfig(data);
+        setRepositoryForm({
+          repositoryOwner: data.repositoryOwner,
+          repositoryName: data.repositoryName,
+          repositoryBranch: data.repositoryBranch || "main"
+        });
+      }
+    } catch (repositoryError) {
+      setError(repositoryError instanceof Error ? repositoryError.message : "リポジトリ設定を読み込めませんでした");
+    } finally {
+      setRepositoryLoading(false);
     }
   }
 
@@ -317,6 +382,53 @@ export function useConsoleController() {
       setError(deployError instanceof Error ? deployError.message : "サービスの作成に失敗しました");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function handleRepositoryFormChange(patch: Partial<RepositoryForm>) {
+    setRepositoryForm((current) => ({ ...current, ...patch }));
+  }
+
+  async function handleSaveRepository(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!activeProjectId) {
+      setError("プロジェクトを選択してください");
+      return;
+    }
+    setSavingRepository(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`/api/v1/projects/${encodeURIComponent(activeProjectId)}/repository`, {
+        method: "PUT",
+        credentials: "include",
+        headers: apiHeaders({
+          "Content-Type": "application/json"
+        }),
+        body: JSON.stringify({
+          repositoryOwner: repositoryForm.repositoryOwner.trim(),
+          repositoryName: repositoryForm.repositoryName.trim(),
+          repositoryBranch: repositoryForm.repositoryBranch.trim() || "main"
+        })
+      });
+      const data = (await readJsonResponse(response)) as RepositoryConfig | ApiErrorResponse;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, "リポジトリ設定の保存に失敗しました"));
+      }
+      if ("projectId" in data) {
+        setRepositoryConfig(data);
+        setRepositoryForm({
+          repositoryOwner: data.repositoryOwner,
+          repositoryName: data.repositoryName,
+          repositoryBranch: data.repositoryBranch
+        });
+        setMessage(`${data.repositoryOwner}/${data.repositoryName} を接続しました`);
+        navigate("/container");
+      }
+    } catch (repositoryError) {
+      setError(repositoryError instanceof Error ? repositoryError.message : "リポジトリ設定の保存に失敗しました");
+    } finally {
+      setSavingRepository(false);
     }
   }
 
@@ -409,8 +521,11 @@ export function useConsoleController() {
     form,
     handleCreateProject,
     handleFormChange,
+    handleOpenRepository,
+    handleRepositoryFormChange,
     handleProjectSelect,
     handleOpenService,
+    handleSaveRepository,
     handleSubmit,
     loadCurrentUser,
     loading,
@@ -421,6 +536,9 @@ export function useConsoleController() {
     pendingProjectDeleteName,
     projectName,
     projects,
+    repositoryConfig,
+    repositoryForm,
+    repositoryLoading,
     requestDelete,
     requestDeleteProject,
     route,
@@ -429,6 +547,7 @@ export function useConsoleController() {
     setProjectName,
     setSidebarOpen,
     sidebarOpen,
+    savingRepository,
     containers,
     startLogin,
     startLogout,
