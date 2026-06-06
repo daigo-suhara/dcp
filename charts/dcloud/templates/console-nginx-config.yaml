@@ -10,6 +10,8 @@ data:
     server {
       listen 8080;
       server_name {{ .Values.console.publicHostname | quote }};
+      absolute_redirect off;
+      port_in_redirect off;
 
       root /usr/share/nginx/html;
       index index.html;
@@ -23,7 +25,8 @@ data:
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port 443;
       }
 
       location /container/ {
@@ -31,7 +34,8 @@ data:
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port 443;
       }
 
     }
@@ -39,12 +43,15 @@ data:
     server {
       listen 8080;
       server_name ~^(?!{{ first (splitList "." .Values.console.publicHostname) }}$)[a-z0-9-]+\.{{ .Values.console.publicServiceDomain | replace "." "\\." }}$;
+      absolute_redirect off;
+      port_in_redirect off;
 
       location / {
         proxy_pass http://{{ include "dcloud.fullname" . }}-api:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port 443;
       }
     }
