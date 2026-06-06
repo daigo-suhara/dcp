@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import time
+from urllib.parse import quote
 from typing import Any
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -31,11 +32,17 @@ def current_user(request: Request) -> dict[str, Any]:
 
 
 def authentik_login_url() -> str:
-    return os.getenv("DCLD_AUTHENTIK_LOGIN_URL", "/outpost.goauthentik.io/start?rd=/").strip() or "/outpost.goauthentik.io/start?rd=/"
+    base_url = os.getenv("DCLD_AUTHENTIK_BASE_URL", "https://auth.drkatana.com").strip() or "https://auth.drkatana.com"
+    console_url = os.getenv("DCLD_CONSOLE_PUBLIC_URL", "https://cloud.daigo-suhara.com").strip() or "https://cloud.daigo-suhara.com"
+    rd = quote(f"{console_url}/login", safe="")
+    return f"{base_url}/outpost.goauthentik.io/start?rd={rd}"
 
 
 def authentik_logout_url() -> str:
-    return os.getenv("DCLD_AUTHENTIK_LOGOUT_URL", "/outpost.goauthentik.io/sign_out").strip() or "/outpost.goauthentik.io/sign_out"
+    base_url = os.getenv("DCLD_AUTHENTIK_BASE_URL", "https://auth.drkatana.com").strip() or "https://auth.drkatana.com"
+    console_url = os.getenv("DCLD_CONSOLE_PUBLIC_URL", "https://cloud.daigo-suhara.com").strip() or "https://cloud.daigo-suhara.com"
+    rd = quote(console_url, safe="")
+    return f"{base_url}/outpost.goauthentik.io/sign_out?rd={rd}"
 
 
 @app.on_event("startup")
