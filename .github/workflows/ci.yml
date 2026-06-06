@@ -22,11 +22,11 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: services/console/package-lock.json
+          cache-dependency-path: console/package-lock.json
       - run: npm ci
-        working-directory: services/console
+        working-directory: console
       - run: npm run build
-        working-directory: services/console
+        working-directory: console
       - uses: azure/setup-helm@v4
       - run: helm template dcp charts/dcp
 
@@ -37,14 +37,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: dcp-core
-            dockerfile: services/core/Dockerfile
-          - name: dcp-container-apps
-            dockerfile: services/container-apps/Dockerfile
+          - name: dcp-api
+            dockerfile: api/Dockerfile
+          - name: dcp-project
+            dockerfile: internal/project/Dockerfile
+          - name: dcp-container
+            dockerfile: internal/container/Dockerfile
           - name: dcp-console
-            dockerfile: services/console/Dockerfile
-          - name: hello-world
-            dockerfile: services/hello-world/Dockerfile
+            dockerfile: console/Dockerfile
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3

@@ -10,14 +10,6 @@ storage:
   clusterID: rook-ceph
   pool: rbd
 
-core:
-  replicaCount: 1
-  image:
-    repository: dcp-core
-  service:
-    port: 8080
-  publicServiceDomain: drkatana.com
-
 console:
   replicaCount: 1
   image:
@@ -28,33 +20,35 @@ console:
   publicServiceDomain: drkatana.com
   publicHostname: cloud.daigo-suhara.com
 
-containerApps:
+api:
   replicaCount: 1
   image:
-    repository: dcp-container-apps
+    repository: dcp-api
   service:
-    port: 8080
+    port: 8000
 
-keycloak:
+project:
+  replicaCount: 1
   image:
-    repository: quay.io/keycloak/keycloak
-    tag: "26.6.2"
-  database:
-    image:
-      repository: postgres
-      tag: "16-alpine"
-    name: keycloak
-    username: keycloak
-    password: dcp-keycloak-db-change-me
-    storageSize: 10Gi
-  baseUrl: ""
-  hostnameUrl: "https://cloud.daigo-suhara.com/keycloak"
-  realm: dcp
-  displayName: D Cloud
-  clientId: dcp-core
-  clientName: D Cloud Core
-  clientSecret: ""
-  loginTheme: dcp
-  sessionSecret: dcp-session-secret-change-me
-  adminUsername: admin
-  adminPassword: dcp-keycloak-admin-change-me
+    repository: dcp-project
+  service:
+    port: 8081
+
+container:
+  replicaCount: 1
+  image:
+    repository: dcp-container
+  service:
+    port: 8082
+
+database:
+  image: postgres:16-alpine
+  service:
+    port: 5432
+  auth:
+    database: dcloud
+    username: dcloud
+    password: dcloud
+  persistence:
+    size: 1Gi
+    storageClassName: dcp-ceph-rbd

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dcp.fullname" . }}-container
+  labels:
+    {{- include "dcp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: container
+spec:
+  replicas: {{ .Values.container.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: container
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: container
+    spec:
+      containers:
+        - name: container
+          image: {{ include "dcp.image" (dict "root" . "repository" .Values.container.image.repository) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "dcp.fullname" . }}-database
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.container.service.port }}
+          readinessProbe:
+            tcpSocket:
+              port: grpc
+          livenessProbe:
+            tcpSocket:
+              port: grpc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dcp.fullname" . }}-container
+  labels:
+    {{- include "dcp.labels" . | nindent 4 }}
+    app.kubernetes.io/component: container
+spec:
+  ports:
+    - name: grpc
+      port: {{ .Values.container.service.port }}
+      targetPort: grpc
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: container

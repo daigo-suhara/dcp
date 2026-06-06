@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package dcloud.container.v1;
+
+option go_package = "github.com/daigo-suhara/dcp/internal/pb/containerpb;containerpb";
+
+service ContainerService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc ListServices(ListServicesRequest) returns (ListServicesResponse);
+  rpc DeployService(DeployServiceRequest) returns (Service);
+  rpc DeleteService(DeleteServiceRequest) returns (Empty);
+}
+
+message Empty {}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  string service = 2;
+  string timestamp = 3;
+}
+
+message Service {
+  string name = 1;
+  string image = 2;
+  string url = 3;
+  bool ready = 4;
+  string reason = 5;
+  string created_at = 6;
+  string updated_at = 7;
+  string namespace = 8;
+  string project_id = 9;
+  int64 generation = 10;
+}
+
+message ListServicesRequest {
+  string user_id = 1;
+  string project_id = 2;
+}
+
+message ListServicesResponse {
+  string user_id = 1;
+  string project_id = 2;
+  string namespace = 3;
+  repeated Service containers = 4;
+}
+
+message DeployServiceRequest {
+  string user_id = 1;
+  string project_id = 2;
+  string name = 3;
+  string image = 4;
+  int32 port = 5;
+  int32 min_scale = 6;
+  int32 max_scale = 7;
+}
+
+message DeleteServiceRequest {
+  string user_id = 1;
+  string project_id = 2;
+  string name = 3;
+}

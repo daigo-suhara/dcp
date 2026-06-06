@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package dcloud.project.v1;
+
+option go_package = "github.com/daigo-suhara/dcp/internal/pb/projectpb;projectpb";
+
+service ProjectService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc Platform(PlatformRequest) returns (PlatformResponse);
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+  rpc CreateProject(CreateProjectRequest) returns (Project);
+  rpc DeleteProject(DeleteProjectRequest) returns (Empty);
+}
+
+message Empty {}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  string service = 2;
+  string timestamp = 3;
+}
+
+message PlatformRequest {}
+
+message PlatformResponse {
+  string name = 1;
+  string description = 2;
+  repeated string components = 3;
+}
+
+message Project {
+  string id = 1;
+  string name = 2;
+  string owner = 3;
+  string created_at = 4;
+}
+
+message ListProjectsRequest {
+  string user_id = 1;
+}
+
+message ListProjectsResponse {
+  string user_id = 1;
+  repeated Project projects = 2;
+}
+
+message CreateProjectRequest {
+  string user_id = 1;
+  string name = 2;
+}
+
+message DeleteProjectRequest {
+  string user_id = 1;
+  string project_id = 2;
+}
