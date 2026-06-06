@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"log/slog"
 	"net"
@@ -18,17 +17,8 @@ import (
 	containerpb "github.com/daigo-suhara/dcloud/internal/pb/containerpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/status"
 )
-
-type jsonCodec struct{}
-
-func (jsonCodec) Name() string                       { return "json" }
-func (jsonCodec) Marshal(v any) ([]byte, error)      { return json.Marshal(v) }
-func (jsonCodec) Unmarshal(data []byte, v any) error { return json.Unmarshal(data, v) }
-
-func init() { encoding.RegisterCodec(jsonCodec{}) }
 
 type Empty = containerpb.Empty
 type HealthRequest = containerpb.HealthRequest
@@ -68,6 +58,7 @@ type deployedService struct {
 }
 
 type containerServer struct {
+	containerpb.UnimplementedContainerServiceServer
 	namespace string
 	db        *sql.DB
 	q         *dbsqlc.Queries
@@ -102,8 +93,8 @@ func (s *containerServer) projectExists(ctx context.Context, userID, projectID s
 }
 
 func (s *containerServer) ListServices(ctx context.Context, req *ListServicesRequest) (*ListServicesResponse, error) {
-	userID := strings.TrimSpace(req.UserID)
-	projectID := strings.TrimSpace(req.ProjectID)
+	userID := strings.TrimSpace(req.UserId)
+	projectID := strings.TrimSpace(req.ProjectId)
 	if userID == "" || projectID == "" {
 		return nil, status.Error(codes.InvalidArgument, "userId and projectId are required")
 	}
@@ -118,27 +109,27 @@ func (s *containerServer) ListServices(ctx context.Context, req *ListServicesReq
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query containers")
 	}
-	items := make([]Service, 0, len(records))
+	items := make([]*Service, 0, len(records))
 	for _, record := range records {
-		items = append(items, Service{
+		items = append(items, &Service{
 			Name:       record.Name,
 			Image:      record.Image,
-			URL:        record.URL,
+			Url:        record.URL,
 			Ready:      record.Ready,
 			Reason:     record.Reason,
 			CreatedAt:  record.CreatedAt,
 			UpdatedAt:  record.UpdatedAt,
 			Namespace:  record.Namespace,
-			ProjectID:  record.ProjectID,
+			ProjectId:  record.ProjectID,
 			Generation: record.Generation,
 		})
 	}
-	return &ListServicesResponse{UserID: userID, ProjectID: projectID, Namespace: s.namespace, Containers: items}, nil
+	return &ListServicesResponse{UserId: userID, ProjectId: projectID, Namespace: s.namespace, Containers: items}, nil
 }
 
 func (s *containerServer) DeployService(ctx context.Context, req *DeployServiceRequest) (*Service, error) {
-	userID := strings.TrimSpace(req.UserID)
-	projectID := strings.TrimSpace(req.ProjectID)
+	userID := strings.TrimSpace(req.UserId)
+	projectID := strings.TrimSpace(req.ProjectId)
 	name := strings.TrimSpace(req.Name)
 	image := strings.TrimSpace(req.Image)
 	if userID == "" || projectID == "" || name == "" || image == "" {
@@ -188,21 +179,21 @@ func (s *containerServer) DeployService(ctx context.Context, req *DeployServiceR
 	svc := Service{
 		Name:       created.Name,
 		Image:      created.Image,
-		URL:        created.URL,
+		Url:        created.URL,
 		Ready:      created.Ready,
 		Reason:     created.Reason,
 		CreatedAt:  created.CreatedAt,
 		UpdatedAt:  created.UpdatedAt,
 		Namespace:  created.Namespace,
-		ProjectID:  created.ProjectID,
+		ProjectId:  created.ProjectID,
 		Generation: created.Generation,
 	}
 	return &svc, nil
 }
 
 func (s *containerServer) DeleteService(ctx context.Context, req *DeleteServiceRequest) (*Empty, error) {
-	userID := strings.TrimSpace(req.UserID)
-	projectID := strings.TrimSpace(req.ProjectID)
+	userID := strings.TrimSpace(req.UserId)
+	projectID := strings.TrimSpace(req.ProjectId)
 	name := strings.TrimSpace(req.Name)
 	if userID == "" || projectID == "" || name == "" {
 		return nil, status.Error(codes.InvalidArgument, "userId, projectId, and name are required")
@@ -244,7 +235,7 @@ func main() {
 	}
 	defer server.Close()
 
-	grpcServer := grpc.NewServer(grpc.ForceServerCodec(jsonCodec{}))
+	grpcServer := grpc.NewServer()
 	RegisterContainerServer(grpcServer, server)
 	errc := make(chan error, 1)
 	go func() {

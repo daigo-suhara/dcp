@@ -28,6 +28,8 @@ spec:
           env:
             - name: DCLD_PUBLIC_SERVICE_DOMAIN
               value: {{ .Values.publicServiceDomain | quote }}
+            - name: DCLD_CONTAINER_GRPC_ADDR
+              value: {{ include "dcloud.fullname" . }}-container:{{ .Values.container.service.port }}
           ports:
             - name: http
               containerPort: 8000

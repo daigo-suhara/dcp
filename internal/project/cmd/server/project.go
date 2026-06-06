@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -21,17 +20,8 @@ import (
 	projectpb "github.com/daigo-suhara/dcloud/internal/pb/projectpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/status"
 )
-
-type jsonCodec struct{}
-
-func (jsonCodec) Name() string                       { return "json" }
-func (jsonCodec) Marshal(v any) ([]byte, error)      { return json.Marshal(v) }
-func (jsonCodec) Unmarshal(data []byte, v any) error { return json.Unmarshal(data, v) }
-
-func init() { encoding.RegisterCodec(jsonCodec{}) }
 
 type Empty = projectpb.Empty
 type HealthRequest = projectpb.HealthRequest
@@ -46,6 +36,7 @@ type DeleteProjectRequest = projectpb.DeleteProjectRequest
 type ProjectServer = projectpb.ProjectServiceServer
 
 type projectServer struct {
+	projectpb.UnimplementedProjectServiceServer
 	db *sql.DB
 	q  *dbsqlc.Queries
 }
@@ -74,7 +65,7 @@ func (s *projectServer) Platform(context.Context, *PlatformRequest) (*PlatformRe
 }
 
 func (s *projectServer) ListProjects(ctx context.Context, req *ListProjectsRequest) (*ListProjectsResponse, error) {
-	userID := strings.TrimSpace(req.UserID)
+	userID := strings.TrimSpace(req.UserId)
 	if userID == "" {
 		return nil, status.Error(codes.InvalidArgument, "userId is required")
 	}
@@ -82,32 +73,32 @@ func (s *projectServer) ListProjects(ctx context.Context, req *ListProjectsReque
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query projects")
 	}
-	items := make([]Project, 0, len(records))
+	items := make([]*Project, 0, len(records))
 	for _, record := range records {
-		items = append(items, Project{
-			ID:        record.ID,
+		items = append(items, &Project{
+			Id:        record.ID,
 			Name:      record.Name,
 			Owner:     record.UserID,
 			CreatedAt: record.CreatedAt,
 		})
 	}
-	return &ListProjectsResponse{UserID: userID, Projects: items}, nil
+	return &ListProjectsResponse{UserId: userID, Projects: items}, nil
 }
 
 func (s *projectServer) CreateProject(ctx context.Context, req *CreateProjectRequest) (*Project, error) {
-	userID := strings.TrimSpace(req.UserID)
+	userID := strings.TrimSpace(req.UserId)
 	name := strings.TrimSpace(req.Name)
 	if userID == "" || name == "" {
 		return nil, status.Error(codes.InvalidArgument, "userId and name are required")
 	}
 	project := Project{
-		ID:        fmt.Sprintf("%s-%s", sanitizeDNSLabel(name), shortID()),
+		Id:        fmt.Sprintf("%s-%s", sanitizeDNSLabel(name), shortID()),
 		Name:      name,
 		Owner:     userID,
 		CreatedAt: time.Now().UTC().Format(time.RFC3339Nano),
 	}
 	_, err := s.q.CreateProject(ctx, dbsqlc.CreateProjectParams{
-		ID:        project.ID,
+		ID:        project.Id,
 		UserID:    userID,
 		Name:      name,
 		CreatedAt: project.CreatedAt,
@@ -122,8 +113,8 @@ func (s *projectServer) CreateProject(ctx context.Context, req *CreateProjectReq
 }
 
 func (s *projectServer) DeleteProject(ctx context.Context, req *DeleteProjectRequest) (*Empty, error) {
-	userID := strings.TrimSpace(req.UserID)
-	projectID := strings.TrimSpace(req.ProjectID)
+	userID := strings.TrimSpace(req.UserId)
+	projectID := strings.TrimSpace(req.ProjectId)
 	if userID == "" || projectID == "" {
 		return nil, status.Error(codes.InvalidArgument, "userId and projectId are required")
 	}
@@ -156,7 +147,7 @@ func main() {
 	}
 	defer server.Close()
 
-	grpcServer := grpc.NewServer(grpc.ForceServerCodec(jsonCodec{}))
+	grpcServer := grpc.NewServer()
 	RegisterProjectServer(grpcServer, server)
 	errc := make(chan error, 1)
 	go func() {

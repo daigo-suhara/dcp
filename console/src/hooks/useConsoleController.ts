@@ -13,6 +13,18 @@ type ApiErrorResponse = {
   error?: string;
 };
 
+async function readJsonResponse(response: Response): Promise<unknown> {
+  const text = await response.text();
+  if (!text.trim()) {
+    return null;
+  }
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return { detail: text };
+  }
+}
+
 export function useConsoleController() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [containers, setContainers] = useState<DeployedService[]>([]);
@@ -130,7 +142,7 @@ export function useConsoleController() {
         setCurrentUser(null);
         return;
       }
-      const data = (await response.json()) as AuthUser | ApiErrorResponse;
+      const data = (await readJsonResponse(response)) as AuthUser | ApiErrorResponse;
       if (!response.ok) {
         throw new Error(getApiErrorMessage(data, "ログイン状態を確認できませんでした"));
       }
@@ -184,7 +196,7 @@ export function useConsoleController() {
         credentials: "include",
         headers: apiHeaders()
       });
-      const data = (await response.json()) as ProjectsResponse | ApiErrorResponse;
+      const data = (await readJsonResponse(response)) as ProjectsResponse | ApiErrorResponse;
       if (!response.ok) {
         throw new Error(getApiErrorMessage(data, "プロジェクト一覧を読み込めませんでした"));
       }
@@ -220,7 +232,7 @@ export function useConsoleController() {
         credentials: "include",
         headers: apiHeaders()
       });
-      const data = (await response.json()) as PlatformResponse | ApiErrorResponse;
+      const data = (await readJsonResponse(response)) as PlatformResponse | ApiErrorResponse;
       if (!response.ok) {
         throw new Error(getApiErrorMessage(data, "サービス一覧を読み込めませんでした"));
       }
@@ -252,7 +264,7 @@ export function useConsoleController() {
         }),
         body: JSON.stringify({ name: projectName.trim() })
       });
-      const data = (await response.json()) as Project | ApiErrorResponse;
+      const data = (await readJsonResponse(response)) as Project | ApiErrorResponse;
       if (!response.ok) {
         throw new Error(getApiErrorMessage(data, "プロジェクトの作成に失敗しました"));
       }
@@ -291,7 +303,7 @@ export function useConsoleController() {
         })
       });
 
-      const data = (await response.json()) as DeployedService | ApiErrorResponse;
+      const data = (await readJsonResponse(response)) as DeployedService | ApiErrorResponse;
       if (!response.ok) {
         throw new Error(getApiErrorMessage(data, "サービスの作成に失敗しました"));
       }
@@ -338,7 +350,7 @@ export function useConsoleController() {
         headers: apiHeaders()
       });
       if (!response.ok && response.status !== 204) {
-        const data = (await response.json()) as ApiErrorResponse;
+        const data = (await readJsonResponse(response)) as ApiErrorResponse;
         throw new Error(getApiErrorMessage(data, "サービスの削除に失敗しました"));
       }
       setMessage(`${name} を削除しました`);
@@ -366,7 +378,7 @@ export function useConsoleController() {
         headers: apiHeaders()
       });
       if (!response.ok && response.status !== 204) {
-        const data = (await response.json()) as ApiErrorResponse;
+        const data = (await readJsonResponse(response)) as ApiErrorResponse;
         throw new Error(getApiErrorMessage(data, "プロジェクトの削除に失敗しました"));
       }
       setMessage("プロジェクトを削除しました");

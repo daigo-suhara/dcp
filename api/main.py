@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 from apps.container import router as container_router
 from apps.project import router as project_router
 from apps.repository import Repository
+from container_client import ContainerClient
 
 app = FastAPI(title="DCloud API")
 
@@ -15,6 +16,7 @@ app.include_router(project_router, prefix="/project", tags=["project"])
 app.include_router(container_router, prefix="/container", tags=["container"])
 
 repo = Repository.new()
+container_client = ContainerClient.new()
 user = {"id": "default-user", "username": "default-user"}
 
 
@@ -85,12 +87,14 @@ def list_container(x_dcp_project: str | None = Header(default=None, alias="X-DCP
     if not project_id:
         raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
     try:
-        containers = repo.list_containers(user["id"], project_id)
+        containers = container_client.list_services(user["id"], project_id)
+        return {"namespace": containers["namespace"], "user": user["id"], "projectId": project_id, "containers": containers["containers"]}
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail="プロジェクトが見つかりません") from exc
+        raise HTTPException(status_code=404, detail="サービス一覧を取得できません") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    return {"namespace": containers["namespace"], "user": user["id"], "projectId": project_id, "containers": containers["containers"]}
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.post("/api/v1/container")
@@ -101,7 +105,7 @@ def deploy_container(body: dict[str, Any], x_dcp_project: str | None = Header(de
     name = str(body.get("name", "")).strip()
     image = str(body.get("image", "")).strip()
     try:
-        return repo.deploy_container(
+        return container_client.deploy_service(
             user["id"],
             project_id,
             name,
@@ -111,9 +115,11 @@ def deploy_container(body: dict[str, Any], x_dcp_project: str | None = Header(de
             int(body.get("maxScale", 1) or 1),
         )
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail="プロジェクトが見つかりません") from exc
+        raise HTTPException(status_code=404, detail="サービスを作成できません") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.delete("/api/v1/container/{name}")
@@ -122,9 +128,11 @@ def delete_container(name: str, x_dcp_project: str | None = Header(default=None,
     if not project_id:
         raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
     try:
-        deleted = repo.delete_container(user["id"], project_id, name)
+        container_client.delete_service(user["id"], project_id, name)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    if not deleted:
-        raise HTTPException(status_code=404, detail="サービスが見つかりません")
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="サービスが見つかりません") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return {"status": "deleted"}
