@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -41,10 +40,38 @@ type DeployServiceRequest = containerpb.DeployServiceRequest
 type DeleteServiceRequest = containerpb.DeleteServiceRequest
 type ContainerServer = containerpb.ContainerServiceServer
 
+type projectScope struct {
+	UserID    string
+	ProjectID string
+}
+
+type deployRequest struct {
+	Name     string
+	Image    string
+	Port     int32
+	MinScale int32
+	MaxScale int32
+}
+
+type deployedService struct {
+	Name         string
+	Image        string
+	URL          string
+	ResourceName string
+	Ready        bool
+	Reason       string
+	CreatedAt    string
+	UpdatedAt    string
+	Namespace    string
+	ProjectID    string
+	Generation   int64
+}
+
 type containerServer struct {
 	namespace string
 	db        *sql.DB
 	q         *dbsqlc.Queries
+	knative   *knativeServiceManager
 }
 
 func newContainerServer(namespace string) (*containerServer, error) {
@@ -52,7 +79,11 @@ func newContainerServer(namespace string) (*containerServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &containerServer{namespace: namespace, db: database, q: dbsqlc.New(database)}, nil
+	knative, err := newKnativeServiceManager(namespace, publicServiceDomain())
+	if err != nil {
+		return nil, err
+	}
+	return &containerServer{namespace: namespace, db: database, q: dbsqlc.New(database), knative: knative}, nil
 }
 
 func (s *containerServer) Close() error {
@@ -83,7 +114,7 @@ func (s *containerServer) ListServices(ctx context.Context, req *ListServicesReq
 	if !exists {
 		return nil, status.Error(codes.NotFound, "project not found")
 	}
-	records, err := s.q.ListContainers(ctx, projectID)
+	records, err := s.knative.list(ctx, projectScope{UserID: userID, ProjectID: projectID})
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query containers")
 	}
@@ -92,9 +123,9 @@ func (s *containerServer) ListServices(ctx context.Context, req *ListServicesReq
 		items = append(items, Service{
 			Name:       record.Name,
 			Image:      record.Image,
-			URL:        record.Url,
+			URL:        record.URL,
 			Ready:      record.Ready,
-			Reason:     nullStringValue(record.Reason),
+			Reason:     record.Reason,
 			CreatedAt:  record.CreatedAt,
 			UpdatedAt:  record.UpdatedAt,
 			Namespace:  record.Namespace,
@@ -124,27 +155,42 @@ func (s *containerServer) DeployService(ctx context.Context, req *DeployServiceR
 		return nil, status.Error(codes.NotFound, "project not found")
 	}
 
-	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
-	url := fmt.Sprintf("https://%s.%s", name, publicServiceDomain())
-	created, err := s.q.UpsertContainer(ctx, dbsqlc.UpsertContainerParams{
-		ProjectID: projectID,
-		Name:      name,
-		Image:     image,
-		Url:       url,
-		Reason:    sql.NullString{},
-		CreatedAt: timestamp,
-		UpdatedAt: timestamp,
-		Namespace: s.namespace,
+	created, err := s.knative.deploy(ctx, projectScope{UserID: userID, ProjectID: projectID}, deployRequest{
+		Name:     name,
+		Image:    image,
+		Port:     req.Port,
+		MinScale: req.MinScale,
+		MaxScale: req.MaxScale,
 	})
 	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to deploy service")
+	}
+	createdAt := created.CreatedAt
+	if createdAt == "" {
+		createdAt = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	updatedAt := created.UpdatedAt
+	if updatedAt == "" {
+		updatedAt = createdAt
+	}
+	if _, err := s.q.UpsertContainer(ctx, dbsqlc.UpsertContainerParams{
+		ProjectID: projectID,
+		Name:      name,
+		Image:     created.Image,
+		Url:       created.URL,
+		Reason:    sql.NullString{},
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+		Namespace: created.Namespace,
+	}); err != nil {
 		return nil, status.Error(codes.Internal, "failed to persist service")
 	}
 	svc := Service{
 		Name:       created.Name,
 		Image:      created.Image,
-		URL:        created.Url,
+		URL:        created.URL,
 		Ready:      created.Ready,
-		Reason:     nullStringValue(created.Reason),
+		Reason:     created.Reason,
 		CreatedAt:  created.CreatedAt,
 		UpdatedAt:  created.UpdatedAt,
 		Namespace:  created.Namespace,
@@ -168,13 +214,14 @@ func (s *containerServer) DeleteService(ctx context.Context, req *DeleteServiceR
 	if !exists {
 		return nil, status.Error(codes.NotFound, "project not found")
 	}
+	if err := s.knative.delete(ctx, projectScope{UserID: userID, ProjectID: projectID}, name); err != nil {
+		return nil, status.Error(codes.Internal, "failed to delete service")
+	}
 	rowsAffected, err := s.q.DeleteContainer(ctx, dbsqlc.DeleteContainerParams{ProjectID: projectID, Name: name})
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to delete service")
 	}
-	if rowsAffected == 0 {
-		return nil, status.Error(codes.NotFound, "service not found")
-	}
+	_ = rowsAffected
 	return &Empty{}, nil
 }
 
@@ -222,13 +269,6 @@ func env(key, fallback string) string {
 		return value
 	}
 	return fallback
-}
-
-func nullStringValue(value sql.NullString) string {
-	if !value.Valid {
-		return ""
-	}
-	return value.String
 }
 
 func publicServiceDomain() string {

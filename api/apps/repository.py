@@ -10,6 +10,8 @@ from uuid import uuid4
 import psycopg
 from psycopg.rows import dict_row
 
+from apps.knative import KnativeManager
+
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projects (
@@ -84,10 +86,16 @@ def short_id() -> str:
 class Repository:
     lock: Lock
     dsn: str
+    knative: KnativeManager | None
 
     @classmethod
     def new(cls) -> "Repository":
-        repo = cls(lock=Lock(), dsn=database_url())
+        public_domain = public_service_domain()
+        try:
+            knative = KnativeManager.new(env("DCLD_TARGET_NAMESPACE", "dcloud-system"), public_domain)
+        except Exception:
+            knative = None
+        repo = cls(lock=Lock(), dsn=database_url(), knative=knative)
         repo.initialize()
         return repo
 
@@ -106,6 +114,14 @@ class Repository:
                 (user_id, project_id),
             )
             return cur.fetchone() is not None
+
+    def project_exists(self, user_id: str, project_id: str) -> bool:
+        normalized_user = user_id.strip()
+        normalized_project = project_id.strip()
+        if not normalized_user or not normalized_project:
+            return False
+        with self._connect() as conn:
+            return self._project_exists(conn, normalized_user, normalized_project)
 
     def list_projects(self, user_id: str) -> list[dict[str, Any]]:
         normalized_user = user_id.strip()
@@ -151,6 +167,71 @@ class Repository:
                 raise KeyError("project already exists")
             return dict(row)
 
+    def upsert_container_state(self, user_id: str, project_id: str, service: dict[str, Any]) -> dict[str, Any]:
+        normalized_user = user_id.strip()
+        normalized_project = project_id.strip()
+        normalized_name = str(service.get("name", "")).strip()
+        normalized_image = str(service.get("image", "")).strip()
+        normalized_url = str(service.get("url", "")).strip()
+        normalized_namespace = str(service.get("namespace", env("DCLD_TARGET_NAMESPACE", "dcloud-system"))).strip()
+        normalized_reason = str(service.get("reason", "")).strip() or None
+        if not normalized_user or not normalized_project or not normalized_name or not normalized_image or not normalized_url:
+            raise ValueError("userId, projectId, name, image, and url are required")
+
+        created_at = str(service.get("createdAt", now()))
+        updated_at = str(service.get("updatedAt", created_at))
+        ready = bool(service.get("ready", False))
+        generation = int(service.get("generation") or 1)
+
+        with self.lock, self._connect() as conn, conn.cursor() as cur:
+            if not self._project_exists(conn, normalized_user, normalized_project):
+                raise KeyError("project not found")
+            cur.execute(
+                """
+                INSERT INTO containers (
+                    project_id, name, image, url, ready, reason,
+                    created_at, updated_at, namespace, generation
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (project_id, name) DO UPDATE SET
+                    image = EXCLUDED.image,
+                    url = EXCLUDED.url,
+                    ready = EXCLUDED.ready,
+                    reason = EXCLUDED.reason,
+                    created_at = EXCLUDED.created_at,
+                    updated_at = EXCLUDED.updated_at,
+                    namespace = EXCLUDED.namespace,
+                    generation = EXCLUDED.generation
+                RETURNING
+                    name,
+                    image,
+                    url,
+                    ready,
+                    reason,
+                    created_at AS "createdAt",
+                    updated_at AS "updatedAt",
+                    namespace,
+                    project_id AS "projectId",
+                    generation
+                """,
+                (
+                    normalized_project,
+                    normalized_name,
+                    normalized_image,
+                    normalized_url,
+                    ready,
+                    normalized_reason,
+                    created_at,
+                    updated_at,
+                    normalized_namespace,
+                    generation,
+                ),
+            )
+            row = cur.fetchone()
+            if row is None:
+                raise RuntimeError("failed to persist container")
+            return dict(row)
+
     def delete_project(self, user_id: str, project_id: str) -> bool:
         normalized_user = user_id.strip()
         normalized_project = project_id.strip()
@@ -170,34 +251,62 @@ class Repository:
         if not normalized_user or not normalized_project:
             raise ValueError("userId and projectId are required")
 
-        with self._connect() as conn, conn.cursor() as cur:
+        with self._connect() as conn:
             if not self._project_exists(conn, normalized_user, normalized_project):
                 raise KeyError("project not found")
-            cur.execute(
-                """
-                SELECT
-                    name,
-                    image,
-                    url,
-                    ready,
-                    reason,
-                    created_at AS "createdAt",
-                    updated_at AS "updatedAt",
-                    namespace,
-                    project_id AS "projectId",
-                    generation
-                FROM containers
-                WHERE project_id = %s
-                ORDER BY created_at, name
-                """,
-                (normalized_project,),
-            )
-            return {
-                "userId": normalized_user,
+
+        if self.knative is None:
+            with self._connect() as conn, conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT
+                        name,
+                        image,
+                        url,
+                        ready,
+                        reason,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt",
+                        namespace,
+                        project_id AS "projectId",
+                        generation
+                    FROM containers
+                    WHERE project_id = %s
+                    ORDER BY created_at, name
+                    """,
+                    (normalized_project,),
+                )
+                return {
+                    "userId": normalized_user,
+                    "projectId": normalized_project,
+                    "namespace": env("DCLD_TARGET_NAMESPACE", "dcloud-system"),
+                    "containers": [dict(row) for row in cur.fetchall()],
+                }
+
+        services = self.knative.list_services(normalized_project)
+        records = []
+        for service in services:
+            record = {
+                "name": service.name,
+                "image": service.image,
+                "url": service.url,
+                "ready": service.ready,
+                "reason": service.reason,
+                "createdAt": service.created_at,
+                "updatedAt": service.updated_at,
+                "namespace": service.namespace,
                 "projectId": normalized_project,
-                "namespace": env("DCLD_TARGET_NAMESPACE", "dcloud-system"),
-                "containers": [dict(row) for row in cur.fetchall()],
+                "generation": service.generation,
             }
+            records.append(record)
+            self.upsert_container_state(normalized_user, normalized_project, record)
+
+        return {
+            "userId": normalized_user,
+            "projectId": normalized_project,
+            "namespace": env("DCLD_TARGET_NAMESPACE", "dcloud-system"),
+            "containers": records,
+        }
 
     def deploy_container(
         self,
@@ -219,13 +328,63 @@ class Repository:
             raise ValueError("port must be between 1 and 65535")
         _ = min_scale, max_scale
 
-        namespace = env("DCLD_TARGET_NAMESPACE", "dcloud-system")
-        timestamp = now()
-        url = f"https://{normalized_name}.{public_service_domain()}"
+        if self.knative is None:
+            timestamp = now()
+            url = f"https://{normalized_name}.{public_service_domain()}"
+            with self.lock, self._connect() as conn, conn.cursor() as cur:
+                if not self._project_exists(conn, normalized_user, normalized_project):
+                    raise KeyError("project not found")
+                cur.execute(
+                    """
+                    INSERT INTO containers (
+                        project_id, name, image, url, ready, reason,
+                        created_at, updated_at, namespace, generation
+                    )
+                    VALUES (%s, %s, %s, %s, TRUE, NULL, %s, %s, %s, 1)
+                    ON CONFLICT (project_id, name) DO UPDATE SET
+                        image = EXCLUDED.image,
+                        url = EXCLUDED.url,
+                        ready = EXCLUDED.ready,
+                        reason = EXCLUDED.reason,
+                        created_at = EXCLUDED.created_at,
+                        updated_at = EXCLUDED.updated_at,
+                        namespace = EXCLUDED.namespace,
+                        generation = EXCLUDED.generation
+                    RETURNING
+                        name,
+                        image,
+                        url,
+                        ready,
+                        reason,
+                        created_at AS "createdAt",
+                        updated_at AS "updatedAt",
+                        namespace,
+                        project_id AS "projectId",
+                        generation
+                    """,
+                    (
+                        normalized_project,
+                        normalized_name,
+                        normalized_image,
+                        url,
+                        timestamp,
+                        timestamp,
+                        env("DCLD_TARGET_NAMESPACE", "dcloud-system"),
+                        1,
+                    ),
+                )
+                row = cur.fetchone()
+                if row is None:
+                    raise RuntimeError("failed to persist container")
+                return dict(row)
 
         with self.lock, self._connect() as conn, conn.cursor() as cur:
             if not self._project_exists(conn, normalized_user, normalized_project):
                 raise KeyError("project not found")
+        service = self.knative.deploy_service(normalized_project, normalized_name, normalized_image, port)
+        timestamp = service.created_at or now()
+
+        with self.lock, self._connect() as conn, conn.cursor() as cur:
             cur.execute(
                 """
                 INSERT INTO containers (
@@ -238,9 +397,10 @@ class Repository:
                     url = EXCLUDED.url,
                     ready = EXCLUDED.ready,
                     reason = EXCLUDED.reason,
+                    created_at = EXCLUDED.created_at,
                     updated_at = EXCLUDED.updated_at,
                     namespace = EXCLUDED.namespace,
-                    generation = containers.generation + 1
+                    generation = EXCLUDED.generation
                 RETURNING
                     name,
                     image,
@@ -253,7 +413,16 @@ class Repository:
                     project_id AS "projectId",
                     generation
                 """,
-                (normalized_project, normalized_name, normalized_image, url, timestamp, timestamp, namespace),
+                (
+                    normalized_project,
+                    normalized_name,
+                    service.image or normalized_image,
+                    service.url,
+                    timestamp,
+                    service.updated_at or timestamp,
+                    env("DCLD_TARGET_NAMESPACE", "dcloud-system"),
+                    service.generation or 1,
+                ),
             )
             row = cur.fetchone()
             if row is None:
@@ -269,9 +438,21 @@ class Repository:
         if not normalized_user:
             return False
 
+        if self.knative is None:
+            with self.lock, self._connect() as conn, conn.cursor() as cur:
+                if not self._project_exists(conn, normalized_user, normalized_project):
+                    return False
+                cur.execute(
+                    "DELETE FROM containers WHERE project_id = %s AND name = %s",
+                    (normalized_project, normalized_name),
+                )
+                return cur.rowcount > 0
+
         with self.lock, self._connect() as conn, conn.cursor() as cur:
             if not self._project_exists(conn, normalized_user, normalized_project):
                 return False
+        self.knative.delete_service(normalized_project, normalized_name)
+        with self.lock, self._connect() as conn, conn.cursor() as cur:
             cur.execute(
                 "DELETE FROM containers WHERE project_id = %s AND name = %s",
                 (normalized_project, normalized_name),

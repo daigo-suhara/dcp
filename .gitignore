@@ -29,6 +29,13 @@ go.work.sum
 # env file
 .env
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
 # Node / frontend
 node_modules/
 dist/
@@ -37,3 +44,6 @@ dist/
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# OS
+.DS_Store
