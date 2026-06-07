@@ -56,10 +56,10 @@ class IdentityClient:
             raise self._map_error(error) from error
         return self._user_to_dict(response.user)
 
-    def login(self, username: str, password: str) -> dict[str, Any]:
+    def login(self, email: str, password: str) -> dict[str, Any]:
         try:
             response = self._login(
-                identity_pb2.LoginRequest(username=username, password=password)
+                identity_pb2.LoginRequest(email=email, password=password)
             )
         except grpc.RpcError as error:
             raise self._map_error(error) from error
@@ -67,17 +67,15 @@ class IdentityClient:
 
     def register(
         self,
-        username: str,
+        email: str,
         password: str,
-        email: str = "",
         name: str = "",
     ) -> dict[str, Any]:
         try:
             response = self._register(
                 identity_pb2.RegisterRequest(
-                    username=username,
-                    password=password,
                     email=email,
+                    password=password,
                     name=name,
                 )
             )

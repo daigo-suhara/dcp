@@ -395,10 +395,9 @@ func (x *LoginResponse) GetSession() *Session {
 
 type RegisterRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
-	Name          string                 `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -433,9 +432,9 @@ func (*RegisterRequest) Descriptor() ([]byte, []int) {
 	return file_identity_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *RegisterRequest) GetUsername() string {
+func (x *RegisterRequest) GetEmail() string {
 	if x != nil {
-		return x.Username
+		return x.Email
 	}
 	return ""
 }
@@ -443,13 +442,6 @@ func (x *RegisterRequest) GetUsername() string {
 func (x *RegisterRequest) GetPassword() string {
 	if x != nil {
 		return x.Password
-	}
-	return ""
-}
-
-func (x *RegisterRequest) GetEmail() string {
-	if x != nil {
-		return x.Email
 	}
 	return ""
 }
@@ -463,7 +455,7 @@ func (x *RegisterRequest) GetName() string {
 
 type LoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -499,9 +491,9 @@ func (*LoginRequest) Descriptor() ([]byte, []int) {
 	return file_identity_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *LoginRequest) GetUsername() string {
+func (x *LoginRequest) GetEmail() string {
 	if x != nil {
-		return x.Username
+		return x.Email
 	}
 	return ""
 }
@@ -710,14 +702,13 @@ const file_identity_proto_rawDesc = "" +
 	"\asession\x18\x02 \x01(\v2\x1b.dcloud.identity.v1.SessionR\asession\"t\n" +
 	"\rLoginResponse\x12,\n" +
 	"\x04user\x18\x01 \x01(\v2\x18.dcloud.identity.v1.UserR\x04user\x125\n" +
-	"\asession\x18\x02 \x01(\v2\x1b.dcloud.identity.v1.SessionR\asession\"s\n" +
-	"\x0fRegisterRequest\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email\x12\x12\n" +
-	"\x04name\x18\x04 \x01(\tR\x04name\"F\n" +
-	"\fLoginRequest\x12\x1a\n" +
-	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
+	"\asession\x18\x02 \x01(\v2\x1b.dcloud.identity.v1.SessionR\asession\"W\n" +
+	"\x0fRegisterRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"@\n" +
+	"\fLoginRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"0\n" +
 	"\tMeRequest\x12#\n" +
 	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\":\n" +

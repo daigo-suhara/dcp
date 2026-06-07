@@ -76,12 +76,11 @@ func (s *identityServer) Health(context.Context, *HealthRequest) (*HealthRespons
 }
 
 func (s *identityServer) Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error) {
-	username := strings.TrimSpace(req.Username)
-	password := strings.TrimSpace(req.Password)
 	email := strings.TrimSpace(req.Email)
+	password := strings.TrimSpace(req.Password)
 	name := strings.TrimSpace(req.Name)
-	if username == "" || password == "" {
-		return nil, status.Error(codes.InvalidArgument, "username and password are required")
+	if email == "" || password == "" {
+		return nil, status.Error(codes.InvalidArgument, "email and password are required")
 	}
 	if len(password) < 8 {
 		return nil, status.Error(codes.InvalidArgument, "password must be at least 8 characters")
@@ -93,7 +92,7 @@ func (s *identityServer) Register(ctx context.Context, req *RegisterRequest) (*R
 	timestamp := now()
 	user := userRecord{
 		ID:           fmt.Sprintf("user-%s", shortID()),
-		Username:     username,
+		Username:     email,
 		PasswordHash: string(hash),
 		CreatedAt:    timestamp,
 		UpdatedAt:    timestamp,
@@ -129,20 +128,20 @@ func (s *identityServer) Register(ctx context.Context, req *RegisterRequest) (*R
 }
 
 func (s *identityServer) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
-	username := strings.TrimSpace(req.Username)
+	email := strings.TrimSpace(req.Email)
 	password := strings.TrimSpace(req.Password)
-	if username == "" || password == "" {
-		return nil, status.Error(codes.InvalidArgument, "username and password are required")
+	if email == "" || password == "" {
+		return nil, status.Error(codes.InvalidArgument, "email and password are required")
 	}
-	user, err := s.getUserByUsername(ctx, username)
+	user, err := s.getUserByUsername(ctx, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, status.Error(codes.Unauthenticated, "invalid username or password")
+			return nil, status.Error(codes.Unauthenticated, "invalid email or password")
 		}
 		return nil, status.Error(codes.Internal, "failed to query user")
 	}
 	if err := verifyPassword(user.PasswordHash, password); err != nil {
-		return nil, status.Error(codes.Unauthenticated, "invalid username or password")
+		return nil, status.Error(codes.Unauthenticated, "invalid email or password")
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
