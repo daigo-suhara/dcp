@@ -76,6 +76,13 @@ def database_url() -> str:
     )
 
 
+def migration_database_url() -> str:
+    return env(
+        "DCLD_DATABASE_MIGRATION_URL",
+        database_url(),
+    )
+
+
 def sanitize_dns_label(value: str) -> str:
     value = value.strip().lower()
     chars: list[str] = []
@@ -98,10 +105,11 @@ def short_id() -> str:
 class Repository:
     lock: Lock
     dsn: str
+    migration_dsn: str
 
     @classmethod
     def new(cls) -> "Repository":
-        repo = cls(lock=Lock(), dsn=database_url())
+        repo = cls(lock=Lock(), dsn=database_url(), migration_dsn=migration_database_url())
         repo.initialize()
         return repo
 
@@ -109,7 +117,7 @@ class Repository:
         return psycopg.connect(self.dsn, row_factory=dict_row)
 
     def initialize(self) -> None:
-        with self.lock, self._connect() as conn:
+        with self.lock, psycopg.connect(self.migration_dsn, row_factory=dict_row) as conn:
             with conn.cursor() as cur:
                 cur.execute(SCHEMA)
 
