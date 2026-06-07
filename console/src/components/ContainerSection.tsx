@@ -8,7 +8,7 @@ import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { Box, Button, Card, CardContent, CircularProgress, Paper, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import type { DeployedService } from "../types";
-import { actionLinkSx } from "../theme";
+import { actionLinkButtonSx } from "../theme";
 import { formatServiceStatus, formatServiceTimestamp, getServiceStatus } from "../utils";
 
 type ContainerSectionProps = {
@@ -89,15 +89,17 @@ export function ContainerSection({
                   </Typography>
                   <Typography sx={{ mt: 0.5, fontWeight: 600, wordBreak: "break-all" }}>
                     {selectedService.url ? (
-                      <Box
+                      <Button
                         component="a"
                         href={selectedService.url}
                         target="_blank"
                         rel="noreferrer"
-                        sx={actionLinkSx}
+                        variant="text"
+                        size="small"
+                        sx={actionLinkButtonSx}
                       >
                         {selectedService.url}
-                      </Box>
+                      </Button>
                     ) : (
                       "-"
                     )}
