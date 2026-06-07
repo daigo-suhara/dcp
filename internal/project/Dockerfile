@@ -3,6 +3,7 @@ FROM golang:1.25-alpine AS build
 WORKDIR /src
 COPY go.mod ./
 COPY go.sum ./
+RUN go mod download
 COPY internal ./internal
 RUN go build -trimpath -ldflags="-s -w" -o /out/project ./internal/project/cmd/server
 
