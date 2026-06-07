@@ -375,6 +375,7 @@ type kubeVM struct {
 				Domain struct {
 					Resources struct {
 						Requests map[string]string `json:"requests"`
+						Limits   map[string]string `json:"limits,omitempty"`
 					} `json:"resources"`
 					Devices struct {
 						Disks []struct {
@@ -427,6 +428,7 @@ type kubeVMCreate struct {
 				Domain struct {
 					Resources struct {
 						Requests map[string]string `json:"requests"`
+						Limits   map[string]string `json:"limits,omitempty"`
 					} `json:"resources"`
 					Devices struct {
 						Disks []struct {
@@ -505,8 +507,12 @@ func (c *kubevirtClient) create(ctx context.Context, namespace string, scope pro
 	payload.Spec.Running = true
 	payload.Spec.Template.Metadata.Labels = payload.Metadata.Labels
 	payload.Spec.Template.Spec.Domain.Resources.Requests = map[string]string{
-		"cpu":    req.CPU,
-		"memory": req.Memory,
+		"cpu":                     req.CPU,
+		"memory":                  req.Memory,
+		"devices.kubevirt.io/kvm": "1",
+	}
+	payload.Spec.Template.Spec.Domain.Resources.Limits = map[string]string{
+		"devices.kubevirt.io/kvm": "1",
 	}
 	payload.Spec.Template.Spec.Domain.Devices.Disks = []struct {
 		Name string `json:"name"`
