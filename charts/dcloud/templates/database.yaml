@@ -1,14 +1,3 @@
-{{- $secretName := printf "%s-database" (include "dcloud.fullname" .) -}}
-{{- $existing := lookup "v1" "Secret" .Release.Namespace $secretName -}}
-{{- $appPassword := "" -}}
-{{- $repmgrPassword := "" -}}
-{{- if $existing -}}
-{{- $appPassword = index $existing.data "password" | b64dec -}}
-{{- $repmgrPassword = index $existing.data "repmgr-password" | b64dec -}}
-{{- else -}}
-{{- $appPassword = randAlphaNum 24 -}}
-{{- $repmgrPassword = randAlphaNum 24 -}}
-{{- end -}}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -17,6 +6,8 @@ metadata:
     {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: database
 stringData:
-  password: {{ $appPassword | quote }}
-  repmgr-password: {{ $repmgrPassword | quote }}
-  DCLD_DATABASE_URL: {{ printf "postgresql://%s:%s@%s-postgresql-ha-pgpool:%d/%s?sslmode=disable" .Values.database.auth.username $appPassword (include "dcloud.fullname" .) (.Values.database.service.port | int) .Values.database.auth.database | quote }}
+  password: {{ .Values.database.auth.password | quote }}
+  postgres-password: {{ .Values.database.auth.password | quote }}
+  pgpool-password: {{ .Values.database.auth.password | quote }}
+  repmgr-password: {{ .Values.database.auth.repmgrPassword | quote }}
+  DCLD_DATABASE_URL: {{ printf "postgresql://%s:%s@%s-postgresql-ha-pgpool:%d/%s?sslmode=disable" .Values.database.auth.username .Values.database.auth.password (include "dcloud.fullname" .) (.Values.database.service.port | int) .Values.database.auth.database | quote }}

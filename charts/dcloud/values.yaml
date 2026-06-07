@@ -56,15 +56,25 @@ database:
   auth:
     database: dcloud
     username: dcloud
+    password: dcloud-database-password-please-change
+    repmgrPassword: dcloud-repmgr-password-please-change
 
 postgresql-ha:
   global:
+    defaultStorageClass: ceph-rbd
     postgresql:
       username: dcloud
       database: dcloud
-      existingSecret: dcloud-database
+      password: dcloud-database-password-please-change
+      repmgrPassword: dcloud-repmgr-password-please-change
       repmgrUsername: repmgr
   postgresql:
     database: dcloud
     username: dcloud
     replicaCount: 2
+    existingSecret: dcloud-database
+    persistence:
+      storageClass: ceph-rbd
+  pgpool:
+    image:
+      repository: bitnamilegacy/pgpool
