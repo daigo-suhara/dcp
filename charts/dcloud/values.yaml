@@ -74,6 +74,8 @@ postgresql-ha:
       database: dcloud
       existingSecret: dcloud-database
       repmgrUsername: repmgr
+    pgpool:
+      existingSecret: dcloud-database
   postgresql:
     image:
       repository: soldevelo/postgresql-repmgr
