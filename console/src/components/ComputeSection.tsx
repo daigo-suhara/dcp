@@ -130,22 +130,11 @@ export function ComputeSection({
                         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "minmax(120px, 1fr) max-content" }, columnGap: 3, rowGap: 0.5, alignItems: "center", minWidth: 0 }}>
                           <Box sx={{ display: "grid", gap: 0.25, minWidth: 0 }}>
                             <Typography sx={{ fontWeight: 700, wordBreak: "break-all" }}>{machine.name}</Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ wordBreak: "break-all" }}>
-                              {machine.image}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              CPU {machine.cpu} / MEM {machine.memory}
-                            </Typography>
                           </Box>
                           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1.5, minWidth: 0, flexWrap: "wrap" }}>
-                            <Box sx={{ display: "grid", gap: 0.25, minWidth: 0, textAlign: { xs: "left", sm: "right" } }}>
-                              <Typography variant="body2" color={isReady ? "success.main" : "text.secondary"} sx={{ fontWeight: 600 }}>
-                                {status}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-                                {formatComputeTimestamp(machine.updatedAt || machine.createdAt)}
-                              </Typography>
-                            </Box>
+                            <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                              {formatComputeTimestamp(machine.updatedAt || machine.createdAt)}
+                            </Typography>
                             <Button
                               variant="text"
                               size="small"
