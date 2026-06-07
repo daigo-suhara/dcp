@@ -1,6 +1,4 @@
 import { Alert, Box, Button, Card, CardContent, Container, Divider, Tab, Tabs, TextField, Typography } from "@mui/material";
-import CloudQueueOutlinedIcon from "@mui/icons-material/CloudQueueOutlined";
-import KeyOutlinedIcon from "@mui/icons-material/KeyOutlined";
 import { useState, type FormEvent } from "react";
 import type { AuthForm } from "../types";
 
@@ -24,69 +22,16 @@ export function AuthScreen({ error, loading, form, onChange, onLogin, onRegister
   return (
     <Box className="auth-page" sx={{ minHeight: "100vh" }}>
       <Container maxWidth="lg" className="auth-shell">
-        <Card variant="outlined" className="auth-card auth-hero-card" sx={{ width: "100%", overflow: "hidden" }}>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "0.95fr 1.05fr" },
-              minHeight: { md: 640 }
-            }}
-          >
-            <Box
-              sx={{
-                p: { xs: 3, sm: 4, md: 5 },
-                background: "linear-gradient(160deg, #0f172a 0%, #1d4ed8 72%, #2563eb 100%)",
-                color: "#ffffff",
-                display: "grid",
-                alignContent: "space-between",
-                gap: 4
-              }}
-            >
-              <Box sx={{ display: "grid", gap: 2.25 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-                  <CloudQueueOutlinedIcon sx={{ fontSize: 30, color: "#ffffff" }} />
-                  <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1, letterSpacing: "0.02em" }}>
-                    DCloud Console
-                  </Typography>
-                </Box>
+        <Box sx={{ width: "100%", display: "grid", gap: 2.25 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em" }}>
+            DCloud Console
+          </Typography>
 
-                <Box sx={{ display: "grid", gap: 0.7 }}>
-                  <Typography variant="h3" sx={{ fontWeight: 800, lineHeight: 1.08, letterSpacing: "-0.03em" }}>
-                    DCloud
-                  </Typography>
-                  <Typography sx={{ maxWidth: 420, color: "rgba(255,255,255,0.78)", fontSize: 15, lineHeight: 1.8 }}>
-                    ローカルの identity でログインして、プロジェクトとコンテナを管理します。
-                  </Typography>
-                </Box>
-
-                <Typography sx={{ color: "rgba(255,255,255,0.66)", fontSize: 12, lineHeight: 1.7 }}>
-                  アカウント作成とログインは右側のタブで切り替えます。
-                </Typography>
-              </Box>
-
-              <Typography sx={{ color: "rgba(255,255,255,0.62)", fontSize: 12, lineHeight: 1.7 }}>
-                DCloud Console は外部 auth provider を使わず、identity を直接使う構成です。
-              </Typography>
-            </Box>
-
+          <Card variant="outlined" className="auth-card auth-hero-card" sx={{ width: "100%", overflow: "hidden" }}>
             <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
               <Box sx={{ display: "grid", gap: 2.5 }}>
-                <Box sx={{ display: "grid", gap: 1.1 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <KeyOutlinedIcon sx={{ fontSize: 22, color: "primary.main" }} />
-                    <Typography variant="h5" sx={{ fontWeight: 800, lineHeight: 1.15 }}>
-                      identity
-                    </Typography>
-                  </Box>
-                  <Typography color="text.secondary">ログインかアカウント作成を選んでください。</Typography>
-                </Box>
-
                 <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-                  <Tabs
-                    value={mode}
-                    onChange={(_, value: "login" | "register") => setMode(value)}
-                    variant="fullWidth"
-                  >
+                  <Tabs value={mode} onChange={(_, value: "login" | "register") => setMode(value)} variant="fullWidth">
                     <Tab value="login" label="ログイン" />
                     <Tab value="register" label="アカウント作成" />
                   </Tabs>
@@ -158,8 +103,8 @@ export function AuthScreen({ error, loading, form, onChange, onLogin, onRegister
                 {error ? <Alert severity="error">{error}</Alert> : null}
               </Box>
             </CardContent>
-          </Box>
-        </Card>
+          </Card>
+        </Box>
       </Container>
     </Box>
   );
