@@ -55,6 +55,13 @@ def clear_session_cookie(response: Response) -> None:
     response.delete_cookie(key=session_cookie_name(), path="/")
 
 
+def exception_detail(exc: Exception, fallback: str) -> str:
+    message = str(exc).strip()
+    if message.startswith("'") and message.endswith("'") and len(message) >= 2:
+        message = message[1:-1].strip()
+    return message or fallback
+
+
 @app.on_event("startup")
 def startup() -> None:
     last_error: Exception | None = None
@@ -299,11 +306,11 @@ def list_compute(
         machines = app.state.compute_client.list_machines(user["id"], project_id)
         return {"namespace": machines["namespace"], "user": user["id"], "projectId": project_id, "machines": machines["machines"]}
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail="仮想マシン一覧を取得できません") from exc
+        raise HTTPException(status_code=404, detail=exception_detail(exc, "仮想マシン一覧を取得できません")) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exception_detail(exc, "仮想マシン一覧を取得できません")) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail=exception_detail(exc, "仮想マシン一覧を取得できません")) from exc
 
 
 @app.post("/api/v1/compute")
@@ -323,11 +330,11 @@ def create_compute(
     try:
         return app.state.compute_client.create_machine(user["id"], project_id, name, image, cpu, memory)
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail="仮想マシンを作成できません") from exc
+        raise HTTPException(status_code=404, detail=exception_detail(exc, "仮想マシンを作成できません")) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exception_detail(exc, "仮想マシンを作成できません")) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail=exception_detail(exc, "仮想マシンを作成できません")) from exc
 
 
 @app.delete("/api/v1/compute/{name}")
@@ -343,9 +350,9 @@ def delete_compute(
     try:
         app.state.compute_client.delete_machine(user["id"], project_id, name)
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise HTTPException(status_code=400, detail=exception_detail(exc, "仮想マシンを削除できません")) from exc
     except KeyError as exc:
-        raise HTTPException(status_code=404, detail="仮想マシンが見つかりません") from exc
+        raise HTTPException(status_code=404, detail=exception_detail(exc, "仮想マシンが見つかりません")) from exc
     except RuntimeError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise HTTPException(status_code=502, detail=exception_detail(exc, "仮想マシンを削除できません")) from exc
     return {"status": "deleted"}

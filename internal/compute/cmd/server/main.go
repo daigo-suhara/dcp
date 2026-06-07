@@ -121,6 +121,9 @@ func (s *computeServer) ListMachines(ctx context.Context, req *ListMachinesReque
 	}
 	records, err := s.kubevirt.list(ctx, s.namespace, userID, projectID)
 	if err != nil {
+		if errors.Is(err, errKubeVirtUnavailable) {
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		}
 		if errors.Is(err, errNotFound) {
 			return nil, status.Error(codes.NotFound, "virtual machines not found")
 		}
@@ -182,6 +185,9 @@ func (s *computeServer) CreateMachine(ctx context.Context, req *CreateMachineReq
 		Memory: memory,
 	})
 	if err != nil {
+		if errors.Is(err, errKubeVirtUnavailable) {
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		}
 		if errors.Is(err, errInvalidArgument) {
 			return nil, status.Error(codes.InvalidArgument, err.Error())
 		}
@@ -222,6 +228,9 @@ func (s *computeServer) DeleteMachine(ctx context.Context, req *DeleteMachineReq
 		return nil, status.Error(codes.NotFound, "project not found")
 	}
 	if err := s.kubevirt.delete(ctx, s.namespace, projectScope{UserID: userID, ProjectID: projectID}, name); err != nil {
+		if errors.Is(err, errKubeVirtUnavailable) {
+			return nil, status.Error(codes.FailedPrecondition, err.Error())
+		}
 		if errors.Is(err, errNotFound) {
 			return nil, status.Error(codes.NotFound, "virtual machine not found")
 		}
@@ -303,8 +312,9 @@ func machineResourceName(userID, projectID, name string) string {
 }
 
 var (
-	errInvalidArgument = errors.New("invalid argument")
-	errNotFound        = errors.New("not found")
+	errInvalidArgument     = errors.New("invalid argument")
+	errNotFound            = errors.New("not found")
+	errKubeVirtUnavailable = errors.New("kubevirt unavailable")
 )
 
 type kubevirtClient struct {
@@ -540,6 +550,9 @@ func (c *kubevirtClient) doJSON(ctx context.Context, method, path string, body a
 		case http.StatusBadRequest, http.StatusUnprocessableEntity:
 			return fmt.Errorf("%w: %s", errInvalidArgument, message)
 		case http.StatusNotFound:
+			if isKubeVirtUnavailableMessage(message) {
+				return fmt.Errorf("%w: %s", errKubeVirtUnavailable, message)
+			}
 			return fmt.Errorf("%w: %s", errNotFound, message)
 		default:
 			return fmt.Errorf("%s", message)
@@ -566,6 +579,13 @@ func kubeErrorMessage(raw []byte) string {
 		return text
 	}
 	return "kubernetes api error"
+}
+
+func isKubeVirtUnavailableMessage(message string) bool {
+	message = strings.ToLower(strings.TrimSpace(message))
+	return strings.Contains(message, "could not find the requested resource") ||
+		strings.Contains(message, "no matches for kind \"virtualmachine\"") ||
+		strings.Contains(message, "no matches for kind virtualmachine")
 }
 
 func vmToRecord(item kubeVM) machineRecord {
