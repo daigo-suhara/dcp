@@ -96,12 +96,12 @@ def auth_login_page() -> RedirectResponse:
 
 @app.post("/api/v1/auth/login")
 def auth_login(body: dict[str, Any], response: Response) -> dict[str, Any]:
-    username = str(body.get("username", "")).strip()
+    username = str(body.get("username", body.get("email", ""))).strip()
     password = str(body.get("password", "")).strip()
     try:
         auth = app.state.identity_client.login(username, password)
     except PermissionError as exc:
-        raise HTTPException(status_code=401, detail="ユーザ名またはパスワードが違います") from exc
+        raise HTTPException(status_code=401, detail="メールアドレスまたはパスワードが違います") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -118,12 +118,11 @@ def auth_register_page() -> RedirectResponse:
 
 @app.post("/api/v1/auth/register")
 def auth_register(body: dict[str, Any], response: Response) -> dict[str, Any]:
-    username = str(body.get("username", "")).strip()
+    email = str(body.get("email", body.get("username", ""))).strip()
     password = str(body.get("password", "")).strip()
-    email = str(body.get("email", "")).strip()
-    name = str(body.get("name", "")).strip()
+    username = email
     try:
-        auth = app.state.identity_client.register(username, password, email, name)
+        auth = app.state.identity_client.register(username, password, email, "")
     except PermissionError as exc:
         raise HTTPException(status_code=401, detail="アカウントを作成できませんでした") from exc
     except ValueError as exc:

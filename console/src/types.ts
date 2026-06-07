@@ -18,10 +18,8 @@ export type AuthUser = {
 };
 
 export type AuthForm = {
-  username: string;
-  password: string;
   email: string;
-  name: string;
+  password: string;
 };
 
 export type Project = {
@@ -82,10 +80,8 @@ export const initialForm: DeployForm = {
 };
 
 export const initialAuthForm: AuthForm = {
-  username: "",
-  password: "",
   email: "",
-  name: ""
+  password: ""
 };
 
 export const navItems = [

@@ -1,4 +1,5 @@
-import { Alert, Box, Button, Card, CardContent, Container, Divider, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Container, Tab, Tabs, TextField, Typography } from "@mui/material";
+import CloudQueueOutlinedIcon from "@mui/icons-material/CloudQueueOutlined";
 import { useState, type FormEvent } from "react";
 import type { AuthForm } from "../types";
 
@@ -21,16 +22,19 @@ export function AuthScreen({ error, loading, form, onChange, onLogin, onRegister
 
   return (
     <Box className="auth-page" sx={{ minHeight: "100vh" }}>
-      <Container maxWidth="lg" className="auth-shell">
-        <Box sx={{ width: "100%", display: "grid", gap: 2.25 }}>
-          <Typography variant="h4" sx={{ fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em" }}>
-            DCloud Console
-          </Typography>
+      <Container maxWidth="sm" className="auth-shell">
+        <Box sx={{ width: "100%", maxWidth: 460, display: "grid", gap: 1.75 }}>
+          <Card variant="outlined" className="auth-card" sx={{ width: "100%", overflow: "hidden" }}>
+            <CardContent sx={{ p: { xs: 2.5, sm: 3.25 } }}>
+              <Box sx={{ display: "grid", gap: 2.25 }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+                  <CloudQueueOutlinedIcon sx={{ fontSize: 30, color: "primary.main", flex: "0 0 auto" }} />
+                  <Typography variant="h6" sx={{ fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.02em", textAlign: "center" }}>
+                    DCloud
+                  </Typography>
+                </Box>
 
-          <Card variant="outlined" className="auth-card auth-hero-card" sx={{ width: "100%", overflow: "hidden" }}>
-            <CardContent sx={{ p: { xs: 3, sm: 4, md: 5 } }}>
-              <Box sx={{ display: "grid", gap: 2.5 }}>
-                <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+                <Box sx={{ borderBottom: 1, borderColor: "divider", mx: -0.75 }}>
                   <Tabs value={mode} onChange={(_, value: "login" | "register") => setMode(value)} variant="fullWidth">
                     <Tab value="login" label="ログイン" />
                     <Tab value="register" label="アカウント作成" />
@@ -43,10 +47,11 @@ export function AuthScreen({ error, loading, form, onChange, onLogin, onRegister
                   sx={{ display: "grid", gap: 1.5 }}
                 >
                   <TextField
-                    label="ユーザ名"
-                    value={form.username}
-                    onChange={(event) => onChange({ username: event.target.value })}
-                    autoComplete="username"
+                    label="メールアドレス"
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => onChange({ email: event.target.value })}
+                    autoComplete="email"
                     fullWidth
                   />
                   <TextField
@@ -57,35 +62,6 @@ export function AuthScreen({ error, loading, form, onChange, onLogin, onRegister
                     autoComplete="current-password"
                     fullWidth
                   />
-
-                  {mode === "register" ? (
-                    <>
-                      <Divider sx={{ my: 0.5 }} />
-                      <Box sx={{ display: "grid", gap: 0.6 }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                          アカウント作成の追加情報
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          作成時だけ入力してください。ログイン時は不要です。
-                        </Typography>
-                      </Box>
-                      <TextField
-                        label="メールアドレス"
-                        type="email"
-                        value={form.email}
-                        onChange={(event) => onChange({ email: event.target.value })}
-                        autoComplete="email"
-                        fullWidth
-                      />
-                      <TextField
-                        label="表示名"
-                        value={form.name}
-                        onChange={(event) => onChange({ name: event.target.value })}
-                        autoComplete="name"
-                        fullWidth
-                      />
-                    </>
-                  ) : null}
 
                   <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5, pt: 0.5 }}>
                     {mode === "login" ? (

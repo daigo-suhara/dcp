@@ -199,10 +199,8 @@ export function useConsoleController() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          username: authForm.username.trim(),
-          password: authForm.password,
           email: authForm.email.trim(),
-          name: authForm.name.trim()
+          password: authForm.password
         })
       });
       const data = (await readJsonResponse(response)) as { user?: AuthUser } | ApiErrorResponse;
