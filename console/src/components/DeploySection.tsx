@@ -91,17 +91,18 @@ export function DeploySection({ error, form, onBack, onChange, onSubmit, submitt
                   }}
                 />
 
-                <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" } }}>
-                  <TextField
-                    label="Port"
-                    type="number"
-                    slotProps={{ htmlInput: { min: 1, max: 65535 } }}
-                    value={form.port}
-                    onChange={(event) => onChange({ port: event.target.value })}
-                    placeholder="8080"
-                    helperText=""
-                    fullWidth
-                  />
+                <TextField
+                  label="Port"
+                  type="number"
+                  slotProps={{ htmlInput: { min: 1, max: 65535 } }}
+                  value={form.port}
+                  onChange={(event) => onChange({ port: event.target.value })}
+                  placeholder="8080"
+                  helperText=""
+                  fullWidth
+                />
+
+                <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" } }}>
                   <TextField
                     label="最小スケール"
                     type="number"
