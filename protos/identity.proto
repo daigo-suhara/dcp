@@ -6,8 +6,8 @@ option go_package = "github.com/daigo-suhara/dcloud/internal/pb/identitypb;ident
 
 service IdentityService {
   rpc Health(HealthRequest) returns (HealthResponse);
-  rpc Register(RegisterRequest) returns (AuthResponse);
-  rpc Login(LoginRequest) returns (AuthResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
   rpc Me(MeRequest) returns (MeResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
 }
@@ -36,7 +36,12 @@ message Session {
   string expires_at = 2;
 }
 
-message AuthResponse {
+message RegisterResponse {
+  User user = 1;
+  Session session = 2;
+}
+
+message LoginResponse {
   User user = 1;
   Session session = 2;
 }

@@ -32,12 +32,12 @@ class IdentityClient:
         self._login = channel.unary_unary(
             "/dcloud.identity.v1.IdentityService/Login",
             request_serializer=identity_pb2.LoginRequest.SerializeToString,
-            response_deserializer=identity_pb2.AuthResponse.FromString,
+            response_deserializer=identity_pb2.LoginResponse.FromString,
         )
         self._register = channel.unary_unary(
             "/dcloud.identity.v1.IdentityService/Register",
             request_serializer=identity_pb2.RegisterRequest.SerializeToString,
-            response_deserializer=identity_pb2.AuthResponse.FromString,
+            response_deserializer=identity_pb2.RegisterResponse.FromString,
         )
         self._logout = channel.unary_unary(
             "/dcloud.identity.v1.IdentityService/Logout",
@@ -92,7 +92,7 @@ class IdentityClient:
             raise self._map_error(error) from error
 
     @staticmethod
-    def _auth_to_dict(response: identity_pb2.AuthResponse) -> dict[str, Any]:
+    def _auth_to_dict(response: identity_pb2.RegisterResponse | identity_pb2.LoginResponse) -> dict[str, Any]:
         return {
             "user": IdentityClient._user_to_dict(response.user),
             "sessionToken": response.session.token,

@@ -31,7 +31,8 @@ type HealthRequest = identitypb.HealthRequest
 type HealthResponse = identitypb.HealthResponse
 type User = identitypb.User
 type Session = identitypb.Session
-type AuthResponse = identitypb.AuthResponse
+type RegisterResponse = identitypb.RegisterResponse
+type LoginResponse = identitypb.LoginResponse
 type RegisterRequest = identitypb.RegisterRequest
 type LoginRequest = identitypb.LoginRequest
 type MeRequest = identitypb.MeRequest
@@ -74,7 +75,7 @@ func (s *identityServer) Health(context.Context, *HealthRequest) (*HealthRespons
 	return &HealthResponse{Status: "ok", Service: "identity", Timestamp: time.Now().UTC().Format(time.RFC3339Nano)}, nil
 }
 
-func (s *identityServer) Register(ctx context.Context, req *RegisterRequest) (*AuthResponse, error) {
+func (s *identityServer) Register(ctx context.Context, req *RegisterRequest) (*RegisterResponse, error) {
 	username := strings.TrimSpace(req.Username)
 	password := strings.TrimSpace(req.Password)
 	email := strings.TrimSpace(req.Email)
@@ -124,10 +125,10 @@ func (s *identityServer) Register(ctx context.Context, req *RegisterRequest) (*A
 	if err := tx.Commit(); err != nil {
 		return nil, status.Error(codes.Internal, "failed to persist user")
 	}
-	return &AuthResponse{User: userToProto(created), Session: sessionToProto(session)}, nil
+	return &RegisterResponse{User: userToProto(created), Session: sessionToProto(session)}, nil
 }
 
-func (s *identityServer) Login(ctx context.Context, req *LoginRequest) (*AuthResponse, error) {
+func (s *identityServer) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
 	username := strings.TrimSpace(req.Username)
 	password := strings.TrimSpace(req.Password)
 	if username == "" || password == "" {
@@ -155,7 +156,7 @@ func (s *identityServer) Login(ctx context.Context, req *LoginRequest) (*AuthRes
 	if err := tx.Commit(); err != nil {
 		return nil, status.Error(codes.Internal, "failed to persist session")
 	}
-	return &AuthResponse{User: userToProto(user), Session: sessionToProto(session)}, nil
+	return &LoginResponse{User: userToProto(user), Session: sessionToProto(session)}, nil
 }
 
 func (s *identityServer) Me(ctx context.Context, req *MeRequest) (*MeResponse, error) {

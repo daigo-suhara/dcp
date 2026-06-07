@@ -289,7 +289,7 @@ func (x *Session) GetExpiresAt() string {
 	return ""
 }
 
-type AuthResponse struct {
+type RegisterResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
 	Session       *Session               `protobuf:"bytes,2,opt,name=session,proto3" json:"session,omitempty"`
@@ -297,20 +297,20 @@ type AuthResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AuthResponse) Reset() {
-	*x = AuthResponse{}
+func (x *RegisterResponse) Reset() {
+	*x = RegisterResponse{}
 	mi := &file_identity_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AuthResponse) String() string {
+func (x *RegisterResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AuthResponse) ProtoMessage() {}
+func (*RegisterResponse) ProtoMessage() {}
 
-func (x *AuthResponse) ProtoReflect() protoreflect.Message {
+func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_identity_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -322,19 +322,71 @@ func (x *AuthResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AuthResponse.ProtoReflect.Descriptor instead.
-func (*AuthResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
+func (*RegisterResponse) Descriptor() ([]byte, []int) {
 	return file_identity_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *AuthResponse) GetUser() *User {
+func (x *RegisterResponse) GetUser() *User {
 	if x != nil {
 		return x.User
 	}
 	return nil
 }
 
-func (x *AuthResponse) GetSession() *Session {
+func (x *RegisterResponse) GetSession() *Session {
+	if x != nil {
+		return x.Session
+	}
+	return nil
+}
+
+type LoginResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	User          *User                  `protobuf:"bytes,1,opt,name=user,proto3" json:"user,omitempty"`
+	Session       *Session               `protobuf:"bytes,2,opt,name=session,proto3" json:"session,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LoginResponse) Reset() {
+	*x = LoginResponse{}
+	mi := &file_identity_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LoginResponse) ProtoMessage() {}
+
+func (x *LoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_identity_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LoginResponse.ProtoReflect.Descriptor instead.
+func (*LoginResponse) Descriptor() ([]byte, []int) {
+	return file_identity_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LoginResponse) GetUser() *User {
+	if x != nil {
+		return x.User
+	}
+	return nil
+}
+
+func (x *LoginResponse) GetSession() *Session {
 	if x != nil {
 		return x.Session
 	}
@@ -353,7 +405,7 @@ type RegisterRequest struct {
 
 func (x *RegisterRequest) Reset() {
 	*x = RegisterRequest{}
-	mi := &file_identity_proto_msgTypes[6]
+	mi := &file_identity_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -365,7 +417,7 @@ func (x *RegisterRequest) String() string {
 func (*RegisterRequest) ProtoMessage() {}
 
 func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[6]
+	mi := &file_identity_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -378,7 +430,7 @@ func (x *RegisterRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterRequest.ProtoReflect.Descriptor instead.
 func (*RegisterRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{6}
+	return file_identity_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RegisterRequest) GetUsername() string {
@@ -419,7 +471,7 @@ type LoginRequest struct {
 
 func (x *LoginRequest) Reset() {
 	*x = LoginRequest{}
-	mi := &file_identity_proto_msgTypes[7]
+	mi := &file_identity_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -431,7 +483,7 @@ func (x *LoginRequest) String() string {
 func (*LoginRequest) ProtoMessage() {}
 
 func (x *LoginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[7]
+	mi := &file_identity_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -444,7 +496,7 @@ func (x *LoginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LoginRequest.ProtoReflect.Descriptor instead.
 func (*LoginRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{7}
+	return file_identity_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *LoginRequest) GetUsername() string {
@@ -470,7 +522,7 @@ type MeRequest struct {
 
 func (x *MeRequest) Reset() {
 	*x = MeRequest{}
-	mi := &file_identity_proto_msgTypes[8]
+	mi := &file_identity_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -482,7 +534,7 @@ func (x *MeRequest) String() string {
 func (*MeRequest) ProtoMessage() {}
 
 func (x *MeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[8]
+	mi := &file_identity_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -495,7 +547,7 @@ func (x *MeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeRequest.ProtoReflect.Descriptor instead.
 func (*MeRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{8}
+	return file_identity_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *MeRequest) GetSessionToken() string {
@@ -514,7 +566,7 @@ type MeResponse struct {
 
 func (x *MeResponse) Reset() {
 	*x = MeResponse{}
-	mi := &file_identity_proto_msgTypes[9]
+	mi := &file_identity_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -526,7 +578,7 @@ func (x *MeResponse) String() string {
 func (*MeResponse) ProtoMessage() {}
 
 func (x *MeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[9]
+	mi := &file_identity_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,7 +591,7 @@ func (x *MeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MeResponse.ProtoReflect.Descriptor instead.
 func (*MeResponse) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{9}
+	return file_identity_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *MeResponse) GetUser() *User {
@@ -558,7 +610,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_identity_proto_msgTypes[10]
+	mi := &file_identity_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -570,7 +622,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[10]
+	mi := &file_identity_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -583,7 +635,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{10}
+	return file_identity_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *LogoutRequest) GetSessionToken() string {
@@ -601,7 +653,7 @@ type LogoutResponse struct {
 
 func (x *LogoutResponse) Reset() {
 	*x = LogoutResponse{}
-	mi := &file_identity_proto_msgTypes[11]
+	mi := &file_identity_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -613,7 +665,7 @@ func (x *LogoutResponse) String() string {
 func (*LogoutResponse) ProtoMessage() {}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_identity_proto_msgTypes[11]
+	mi := &file_identity_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -626,7 +678,7 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
 func (*LogoutResponse) Descriptor() ([]byte, []int) {
-	return file_identity_proto_rawDescGZIP(), []int{11}
+	return file_identity_proto_rawDescGZIP(), []int{12}
 }
 
 var File_identity_proto protoreflect.FileDescriptor
@@ -652,8 +704,11 @@ const file_identity_proto_rawDesc = "" +
 	"\aSession\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x02 \x01(\tR\texpiresAt\"s\n" +
-	"\fAuthResponse\x12,\n" +
+	"expires_at\x18\x02 \x01(\tR\texpiresAt\"w\n" +
+	"\x10RegisterResponse\x12,\n" +
+	"\x04user\x18\x01 \x01(\v2\x18.dcloud.identity.v1.UserR\x04user\x125\n" +
+	"\asession\x18\x02 \x01(\v2\x1b.dcloud.identity.v1.SessionR\asession\"t\n" +
+	"\rLoginResponse\x12,\n" +
 	"\x04user\x18\x01 \x01(\v2\x18.dcloud.identity.v1.UserR\x04user\x125\n" +
 	"\asession\x18\x02 \x01(\v2\x1b.dcloud.identity.v1.SessionR\asession\"s\n" +
 	"\x0fRegisterRequest\x12\x1a\n" +
@@ -671,11 +726,11 @@ const file_identity_proto_rawDesc = "" +
 	"\x04user\x18\x01 \x01(\v2\x18.dcloud.identity.v1.UserR\x04user\"4\n" +
 	"\rLogoutRequest\x12#\n" +
 	"\rsession_token\x18\x01 \x01(\tR\fsessionToken\"\x10\n" +
-	"\x0eLogoutResponse2\x98\x03\n" +
+	"\x0eLogoutResponse2\x9d\x03\n" +
 	"\x0fIdentityService\x12O\n" +
-	"\x06Health\x12!.dcloud.identity.v1.HealthRequest\x1a\".dcloud.identity.v1.HealthResponse\x12Q\n" +
-	"\bRegister\x12#.dcloud.identity.v1.RegisterRequest\x1a .dcloud.identity.v1.AuthResponse\x12K\n" +
-	"\x05Login\x12 .dcloud.identity.v1.LoginRequest\x1a .dcloud.identity.v1.AuthResponse\x12C\n" +
+	"\x06Health\x12!.dcloud.identity.v1.HealthRequest\x1a\".dcloud.identity.v1.HealthResponse\x12U\n" +
+	"\bRegister\x12#.dcloud.identity.v1.RegisterRequest\x1a$.dcloud.identity.v1.RegisterResponse\x12L\n" +
+	"\x05Login\x12 .dcloud.identity.v1.LoginRequest\x1a!.dcloud.identity.v1.LoginResponse\x12C\n" +
 	"\x02Me\x12\x1d.dcloud.identity.v1.MeRequest\x1a\x1e.dcloud.identity.v1.MeResponse\x12O\n" +
 	"\x06Logout\x12!.dcloud.identity.v1.LogoutRequest\x1a\".dcloud.identity.v1.LogoutResponseBBZ@github.com/daigo-suhara/dcloud/internal/pb/identitypb;identitypbb\x06proto3"
 
@@ -691,40 +746,43 @@ func file_identity_proto_rawDescGZIP() []byte {
 	return file_identity_proto_rawDescData
 }
 
-var file_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_identity_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_identity_proto_goTypes = []any{
-	(*Empty)(nil),           // 0: dcloud.identity.v1.Empty
-	(*HealthRequest)(nil),   // 1: dcloud.identity.v1.HealthRequest
-	(*HealthResponse)(nil),  // 2: dcloud.identity.v1.HealthResponse
-	(*User)(nil),            // 3: dcloud.identity.v1.User
-	(*Session)(nil),         // 4: dcloud.identity.v1.Session
-	(*AuthResponse)(nil),    // 5: dcloud.identity.v1.AuthResponse
-	(*RegisterRequest)(nil), // 6: dcloud.identity.v1.RegisterRequest
-	(*LoginRequest)(nil),    // 7: dcloud.identity.v1.LoginRequest
-	(*MeRequest)(nil),       // 8: dcloud.identity.v1.MeRequest
-	(*MeResponse)(nil),      // 9: dcloud.identity.v1.MeResponse
-	(*LogoutRequest)(nil),   // 10: dcloud.identity.v1.LogoutRequest
-	(*LogoutResponse)(nil),  // 11: dcloud.identity.v1.LogoutResponse
+	(*Empty)(nil),            // 0: dcloud.identity.v1.Empty
+	(*HealthRequest)(nil),    // 1: dcloud.identity.v1.HealthRequest
+	(*HealthResponse)(nil),   // 2: dcloud.identity.v1.HealthResponse
+	(*User)(nil),             // 3: dcloud.identity.v1.User
+	(*Session)(nil),          // 4: dcloud.identity.v1.Session
+	(*RegisterResponse)(nil), // 5: dcloud.identity.v1.RegisterResponse
+	(*LoginResponse)(nil),    // 6: dcloud.identity.v1.LoginResponse
+	(*RegisterRequest)(nil),  // 7: dcloud.identity.v1.RegisterRequest
+	(*LoginRequest)(nil),     // 8: dcloud.identity.v1.LoginRequest
+	(*MeRequest)(nil),        // 9: dcloud.identity.v1.MeRequest
+	(*MeResponse)(nil),       // 10: dcloud.identity.v1.MeResponse
+	(*LogoutRequest)(nil),    // 11: dcloud.identity.v1.LogoutRequest
+	(*LogoutResponse)(nil),   // 12: dcloud.identity.v1.LogoutResponse
 }
 var file_identity_proto_depIdxs = []int32{
-	3,  // 0: dcloud.identity.v1.AuthResponse.user:type_name -> dcloud.identity.v1.User
-	4,  // 1: dcloud.identity.v1.AuthResponse.session:type_name -> dcloud.identity.v1.Session
-	3,  // 2: dcloud.identity.v1.MeResponse.user:type_name -> dcloud.identity.v1.User
-	1,  // 3: dcloud.identity.v1.IdentityService.Health:input_type -> dcloud.identity.v1.HealthRequest
-	6,  // 4: dcloud.identity.v1.IdentityService.Register:input_type -> dcloud.identity.v1.RegisterRequest
-	7,  // 5: dcloud.identity.v1.IdentityService.Login:input_type -> dcloud.identity.v1.LoginRequest
-	8,  // 6: dcloud.identity.v1.IdentityService.Me:input_type -> dcloud.identity.v1.MeRequest
-	10, // 7: dcloud.identity.v1.IdentityService.Logout:input_type -> dcloud.identity.v1.LogoutRequest
-	2,  // 8: dcloud.identity.v1.IdentityService.Health:output_type -> dcloud.identity.v1.HealthResponse
-	5,  // 9: dcloud.identity.v1.IdentityService.Register:output_type -> dcloud.identity.v1.AuthResponse
-	5,  // 10: dcloud.identity.v1.IdentityService.Login:output_type -> dcloud.identity.v1.AuthResponse
-	9,  // 11: dcloud.identity.v1.IdentityService.Me:output_type -> dcloud.identity.v1.MeResponse
-	11, // 12: dcloud.identity.v1.IdentityService.Logout:output_type -> dcloud.identity.v1.LogoutResponse
-	8,  // [8:13] is the sub-list for method output_type
-	3,  // [3:8] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	3,  // 0: dcloud.identity.v1.RegisterResponse.user:type_name -> dcloud.identity.v1.User
+	4,  // 1: dcloud.identity.v1.RegisterResponse.session:type_name -> dcloud.identity.v1.Session
+	3,  // 2: dcloud.identity.v1.LoginResponse.user:type_name -> dcloud.identity.v1.User
+	4,  // 3: dcloud.identity.v1.LoginResponse.session:type_name -> dcloud.identity.v1.Session
+	3,  // 4: dcloud.identity.v1.MeResponse.user:type_name -> dcloud.identity.v1.User
+	1,  // 5: dcloud.identity.v1.IdentityService.Health:input_type -> dcloud.identity.v1.HealthRequest
+	7,  // 6: dcloud.identity.v1.IdentityService.Register:input_type -> dcloud.identity.v1.RegisterRequest
+	8,  // 7: dcloud.identity.v1.IdentityService.Login:input_type -> dcloud.identity.v1.LoginRequest
+	9,  // 8: dcloud.identity.v1.IdentityService.Me:input_type -> dcloud.identity.v1.MeRequest
+	11, // 9: dcloud.identity.v1.IdentityService.Logout:input_type -> dcloud.identity.v1.LogoutRequest
+	2,  // 10: dcloud.identity.v1.IdentityService.Health:output_type -> dcloud.identity.v1.HealthResponse
+	5,  // 11: dcloud.identity.v1.IdentityService.Register:output_type -> dcloud.identity.v1.RegisterResponse
+	6,  // 12: dcloud.identity.v1.IdentityService.Login:output_type -> dcloud.identity.v1.LoginResponse
+	10, // 13: dcloud.identity.v1.IdentityService.Me:output_type -> dcloud.identity.v1.MeResponse
+	12, // 14: dcloud.identity.v1.IdentityService.Logout:output_type -> dcloud.identity.v1.LogoutResponse
+	10, // [10:15] is the sub-list for method output_type
+	5,  // [5:10] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_identity_proto_init() }
@@ -738,7 +796,7 @@ func file_identity_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_identity_proto_rawDesc), len(file_identity_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
