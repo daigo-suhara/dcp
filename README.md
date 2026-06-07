@@ -6,7 +6,7 @@
 dcloud/
 ├── buf.yaml
 ├── buf.gen.yaml
-├── protos/
+├── proto/
 │   ├── identity.proto
 │   ├── project.proto
 │   └── container.proto
@@ -23,7 +23,7 @@ dcloud/
 
 ## 役割
 
-- `protos/`: 全サービス共通の gRPC API 定義
+- `proto/`: 全サービス共通の gRPC API 定義
 - `console`: React + Vite の UI
 - `api/`: FastAPI の HTTP エントリポイント。`identity` に session を問い合わせて認証済みユーザとして扱います
 - `internal/pb/`: proto 由来の Go 型定義と service descriptor

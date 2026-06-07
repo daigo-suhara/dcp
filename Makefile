@@ -13,8 +13,8 @@ sqlc:
 
 proto:
 	mkdir -p internal/pb api/generated
-	PATH=$(GOPATH_BIN):$$PATH protoc -I protos --go_out=. --go_opt=module=github.com/daigo-suhara/dcloud --go-grpc_out=. --go-grpc_opt=module=github.com/daigo-suhara/dcloud protos/*.proto
-	protoc -I protos --python_out=api/generated protos/*.proto
+	PATH=$(GOPATH_BIN):$$PATH protoc -I proto --go_out=. --go_opt=module=github.com/daigo-suhara/dcloud --go-grpc_out=. --go-grpc_opt=module=github.com/daigo-suhara/dcloud proto/*.proto
+	protoc -I proto --python_out=api/generated proto/*.proto
 
 buf-lint:
 	BUF_CACHE_DIR=$(BUF_CACHE_DIR) buf lint

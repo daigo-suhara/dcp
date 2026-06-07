@@ -22,5 +22,5 @@ boundaries.
 - There is no `core` component anymore.
 - `services/` is gone; top-level directories are the deployable units.
 - Authentication is handled by `identity`; `api` does not store passwords, but it does forward sessions to `identity`.
-- Shared API shapes live in `protos/` and shared Go bindings live in
+- Shared API shapes live in `proto/` and shared Go bindings live in
   `internal/pb/`.
