@@ -63,7 +63,7 @@ func (s *projectServer) Health(context.Context, *HealthRequest) (*HealthResponse
 }
 
 func (s *projectServer) Platform(context.Context, *PlatformRequest) (*PlatformResponse, error) {
-	return &PlatformResponse{Name: "dcloud", Description: "Project service", Components: []string{"project", "database"}}, nil
+	return &PlatformResponse{Name: "dcloud", Description: "Project service", Components: []string{"project", "compute", "database"}}, nil
 }
 
 func (s *projectServer) ListProjects(ctx context.Context, req *ListProjectsRequest) (*ListProjectsResponse, error) {

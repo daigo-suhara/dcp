@@ -13,6 +13,13 @@ identity:
   service:
     port: 8083
 
+compute:
+  replicaCount: 2
+  image:
+    repository: compute
+  service:
+    port: 8084
+
 storage:
   createClass: true
   className: ceph-rbd

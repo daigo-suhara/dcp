@@ -13,5 +13,5 @@ def platform() -> dict[str, object]:
     return {
         "name": "dcloud",
         "description": "FastAPI api backed by shared PostgreSQL state.",
-        "components": ["console", "api", "project", "container", "database"],
+        "components": ["console", "api", "project", "container", "compute", "database"],
     }

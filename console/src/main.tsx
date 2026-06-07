@@ -6,6 +6,7 @@ import "./styles.css";
 import { AuthScreen } from "./components/AuthScreen";
 import { AppShell } from "./components/AppShell";
 import { ContainerSection } from "./components/ContainerSection";
+import { ComputeSection } from "./components/ComputeSection";
 import { DeploySection } from "./components/DeploySection";
 import { RepositorySection } from "./components/RepositorySection";
 import { ProjectCreateSection } from "./components/ProjectCreateSection";
@@ -99,7 +100,7 @@ function AppContent() {
         projects={controller.projects}
         route={controller.route}
         sidebarOpen={controller.sidebarOpen}
-        onNavigate={(section) => navigate(section === "deploy" ? "/container/deploy" : `/${section}`)}
+        onNavigate={(section) => navigate(section === "compute" ? "/compute" : section === "deploy" ? "/container/deploy" : `/${section}`)}
       >
         {visibleSection === "home" ? (
           <HomeSection
@@ -131,6 +132,18 @@ function AppContent() {
             selectedService={controller.selectedService}
             selectedStatus={controller.selectedStatus}
             containers={controller.containers}
+          />
+        ) : visibleSection === "compute" ? (
+          <ComputeSection
+            deletingMachineName={controller.deletingMachineName}
+            error={controller.error}
+            form={controller.computeForm}
+            loading={controller.computeLoading}
+            machines={controller.computeMachines}
+            onChange={controller.handleComputeFormChange}
+            onDeleteMachine={controller.confirmDeleteMachine}
+            onSubmit={controller.handleComputeSubmit}
+            submitting={controller.computeSubmitting}
           />
         ) : visibleSection === "deploy" ? (
           <DeploySection

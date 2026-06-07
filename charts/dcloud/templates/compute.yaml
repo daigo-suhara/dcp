@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dcloud.fullname" . }}-compute
+  labels:
+    {{- include "dcloud.labels" . | nindent 4 }}
+    app.kubernetes.io/component: compute
+spec:
+  replicas: {{ .Values.compute.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: compute
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: compute
+    spec:
+      serviceAccountName: {{ include "dcloud.fullname" . }}-internal
+      containers:
+        - name: compute
+          image: {{ include "dcloud.image" (dict "root" . "repository" .Values.compute.image.repository) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - secretRef:
+                name: {{ include "dcloud.fullname" . }}-database
+          env:
+            - name: DCLD_COMPUTE_ADDR
+              value: :{{ .Values.compute.service.port }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.compute.service.port }}
+          readinessProbe:
+            tcpSocket:
+              port: grpc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dcloud.fullname" . }}-compute
+  labels:
+    {{- include "dcloud.labels" . | nindent 4 }}
+    app.kubernetes.io/component: compute
+spec:
+  ports:
+    - name: grpc
+      port: {{ .Values.compute.service.port }}
+      targetPort: grpc
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: compute

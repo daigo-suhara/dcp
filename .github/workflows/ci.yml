@@ -47,6 +47,8 @@ jobs:
             dockerfile: internal/container/Dockerfile
           - name: identity
             dockerfile: internal/identity/Dockerfile
+          - name: compute
+            dockerfile: internal/compute/Dockerfile
           - name: console
             dockerfile: console/Dockerfile
     steps:

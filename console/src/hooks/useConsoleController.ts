@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { initialAuthForm, initialForm, type AuthForm, type AuthUser, type DeployedService, type PlatformResponse, type Project, type ProjectsResponse, type RepositoryConfig, type RepositoryForm, type RouteState } from "../types";
+import { initialAuthForm, initialComputeForm, initialForm, type AuthForm, type AuthUser, type ComputeForm, type ComputeMachine, type DeployedService, type PlatformResponse, type Project, type ProjectsResponse, type RepositoryConfig, type RepositoryForm, type RouteState } from "../types";
 import { getServiceStatus, parseRoute } from "../utils";
 
 type LoadServicesOptions = {
@@ -28,6 +28,7 @@ async function readJsonResponse(response: Response): Promise<unknown> {
 export function useConsoleController() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [containers, setContainers] = useState<DeployedService[]>([]);
+  const [computeMachines, setComputeMachines] = useState<ComputeMachine[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProjectId, setActiveProjectId] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -49,12 +50,16 @@ export function useConsoleController() {
   const [repositoryLoading, setRepositoryLoading] = useState(true);
   const [savingRepository, setSavingRepository] = useState(false);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [computeLoading, setComputeLoading] = useState(true);
+  const [computeSubmitting, setComputeSubmitting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingName, setDeletingName] = useState("");
+  const [deletingMachineName, setDeletingMachineName] = useState("");
   const [pendingDeleteName, setPendingDeleteName] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
+  const [computeForm, setComputeForm] = useState<ComputeForm>(initialComputeForm);
   const location = useLocation();
   const navigate = useNavigate();
   const route = useMemo<RouteState>(() => parseRoute(location.pathname), [location.pathname]);
@@ -81,6 +86,7 @@ export function useConsoleController() {
     if (!currentUser) {
       setProjects([]);
       setContainers([]);
+      setComputeMachines([]);
       setActiveProjectId("");
       setProjectName("");
       setRepositoryConfig(null);
@@ -96,6 +102,7 @@ export function useConsoleController() {
 
     setProjects([]);
     setContainers([]);
+    setComputeMachines([]);
     setActiveProjectId("");
     setRepositoryConfig(null);
     setRepositoryForm({
@@ -118,9 +125,11 @@ export function useConsoleController() {
     }
 
     void loadServices();
+    void loadComputeMachines();
     void loadRepository();
     const timer = window.setInterval(() => {
       void loadServices({ quiet: true });
+      void loadComputeMachines({ quiet: true });
     }, 5000);
 
     return () => window.clearInterval(timer);
@@ -270,6 +279,10 @@ export function useConsoleController() {
     setForm((current) => ({ ...current, ...patch }));
   }
 
+  function handleComputeFormChange(patch: Partial<ComputeForm>) {
+    setComputeForm((current) => ({ ...current, ...patch }));
+  }
+
   async function loadProjects() {
     if (!currentUser) {
       return;
@@ -329,6 +342,37 @@ export function useConsoleController() {
     } finally {
       if (!options?.quiet) {
         setLoading(false);
+      }
+    }
+  }
+
+  async function loadComputeMachines(options?: LoadServicesOptions) {
+    if (!activeProjectId || !currentUser) {
+      return;
+    }
+    if (!options?.quiet) {
+      setComputeLoading(true);
+      setError("");
+    }
+    try {
+      const response = await fetch("/api/v1/compute", {
+        credentials: "include",
+        headers: apiHeaders()
+      });
+      const data = (await readJsonResponse(response)) as { machines?: ComputeMachine[] } | ApiErrorResponse;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, "仮想マシン一覧を読み込めませんでした"));
+      }
+      if (data && typeof data === "object" && "machines" in data) {
+        setComputeMachines(data.machines ?? []);
+      }
+    } catch (loadError) {
+      if (!options?.quiet) {
+        setError(loadError instanceof Error ? loadError.message : "仮想マシン一覧を読み込めませんでした");
+      }
+    } finally {
+      if (!options?.quiet) {
+        setComputeLoading(false);
       }
     }
   }
@@ -441,6 +485,42 @@ export function useConsoleController() {
     }
   }
 
+  async function handleComputeSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setComputeSubmitting(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/v1/compute", {
+        method: "POST",
+        credentials: "include",
+        headers: apiHeaders({
+          "Content-Type": "application/json"
+        }),
+        body: JSON.stringify({
+          name: computeForm.name.trim(),
+          image: computeForm.image.trim(),
+          cpu: computeForm.cpu.trim() || "1",
+          memory: computeForm.memory.trim() || "1Gi"
+        })
+      });
+
+      const data = (await readJsonResponse(response)) as ComputeMachine | ApiErrorResponse;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, "仮想マシンの作成に失敗しました"));
+      }
+      if ("name" in data) {
+        setMessage(`${data.name} を作成しました`);
+      }
+      setComputeForm((current) => ({ ...current, name: "" }));
+      await loadComputeMachines();
+    } catch (computeError) {
+      setError(computeError instanceof Error ? computeError.message : "仮想マシンの作成に失敗しました");
+    } finally {
+      setComputeSubmitting(false);
+    }
+  }
+
   function handleRepositoryFormChange(patch: Partial<RepositoryForm>) {
     setRepositoryForm((current) => ({ ...current, ...patch }));
   }
@@ -533,6 +613,29 @@ export function useConsoleController() {
     }
   }
 
+  async function confirmDeleteMachine(name: string) {
+    setDeletingMachineName(name);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`/api/v1/compute/${encodeURIComponent(name)}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: apiHeaders()
+      });
+      if (!response.ok && response.status !== 204) {
+        const data = (await readJsonResponse(response)) as ApiErrorResponse;
+        throw new Error(getApiErrorMessage(data, "仮想マシンの削除に失敗しました"));
+      }
+      setMessage(`${name} を削除しました`);
+      await loadComputeMachines();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "仮想マシンの削除に失敗しました");
+    } finally {
+      setDeletingMachineName("");
+    }
+  }
+
   async function confirmDeleteProject(projectId: string) {
     setPendingProjectDeleteId("");
     setPendingProjectDeleteName("");
@@ -570,6 +673,7 @@ export function useConsoleController() {
     cancelDelete,
     cancelProjectDelete,
     confirmDelete,
+    confirmDeleteMachine,
     confirmDeleteProject,
     creatingProject,
     currentUser,
@@ -579,6 +683,7 @@ export function useConsoleController() {
     form,
     handleCreateProject,
     handleFormChange,
+    handleComputeFormChange,
     handleAuthFormChange,
     handleOpenRepository,
     handleRepositoryFormChange,
@@ -586,6 +691,7 @@ export function useConsoleController() {
     handleOpenService,
     handleSaveRepository,
     handleSubmit,
+    handleComputeSubmit,
     loading,
     message,
     projectsLoaded,
@@ -597,6 +703,11 @@ export function useConsoleController() {
     repositoryConfig,
     repositoryForm,
     repositoryLoading,
+    computeLoading,
+    computeSubmitting,
+    computeForm,
+    computeMachines,
+    deletingMachineName,
     requestDelete,
     requestDeleteProject,
     route,

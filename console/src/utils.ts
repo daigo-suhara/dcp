@@ -1,4 +1,5 @@
 import type { DeployedService, RouteState } from "./types";
+import type { ComputeMachine } from "./types";
 
 export function parseRoute(pathname: string): RouteState {
   const route = pathname.replace(/^\/+/, "");
@@ -13,6 +14,9 @@ export function parseRoute(pathname: string): RouteState {
   if (normalizedSection === "container" && rest[0] === "deploy") {
     return { section: "deploy", selectedServiceName: null };
   }
+  if (normalizedSection === "compute") {
+    return { section: "compute", selectedServiceName: null };
+  }
   if (normalizedSection === "container" && rest[0] === "repository") {
     return { section: "repository", selectedServiceName: null };
   }
@@ -23,7 +27,7 @@ export function parseRoute(pathname: string): RouteState {
     };
   }
 
-  if (normalizedSection === "home" || normalizedSection === "container" || normalizedSection === "deploy" || normalizedSection === "project-create" || normalizedSection === "repository") {
+  if (normalizedSection === "home" || normalizedSection === "container" || normalizedSection === "deploy" || normalizedSection === "compute" || normalizedSection === "project-create" || normalizedSection === "repository") {
     return { section: normalizedSection, selectedServiceName: null };
   }
 
@@ -82,6 +86,51 @@ export function formatServiceReason(reason?: string) {
 }
 
 export function formatServiceTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+export function formatComputeStatus(machine: ComputeMachine) {
+  if (machine.ready) {
+    return "正常";
+  }
+
+  const status = machine.status?.trim();
+  if (status) {
+    switch (status) {
+      case "Provisioning":
+        return "準備中";
+      case "Starting":
+        return "起動中";
+      case "Stopping":
+        return "停止中";
+      case "Stopped":
+        return "停止中";
+      case "Error":
+        return "エラー";
+      default:
+        return status;
+    }
+  }
+
+  return machine.reason?.trim() || "処理中";
+}
+
+export function formatComputeTimestamp(value?: string) {
+  if (!value) {
+    return "-";
+  }
+
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return value;

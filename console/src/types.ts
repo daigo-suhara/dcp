@@ -22,6 +22,13 @@ export type AuthForm = {
   password: string;
 };
 
+export type ComputeForm = {
+  name: string;
+  image: string;
+  cpu: string;
+  memory: string;
+};
+
 export type Project = {
   id: string;
   name: string;
@@ -42,6 +49,21 @@ export type DeployedService = {
   generation?: number;
 };
 
+export type ComputeMachine = {
+  name: string;
+  image: string;
+  cpu: string;
+  memory: string;
+  ready: boolean;
+  status?: string;
+  reason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  namespace: string;
+  projectId?: string;
+  generation?: number;
+};
+
 export type DeployForm = {
   name: string;
   image: string;
@@ -51,7 +73,7 @@ export type DeployForm = {
 };
 
 export type RouteState = {
-  section: "home" | "container" | "deploy" | "project-create" | "repository";
+  section: "home" | "container" | "compute" | "deploy" | "project-create" | "repository";
   selectedServiceName: string | null;
 };
 
@@ -84,8 +106,15 @@ export const initialAuthForm: AuthForm = {
   password: ""
 };
 
+export const initialComputeForm: ComputeForm = {
+  name: "",
+  image: "quay.io/containerdisks/fedora:latest",
+  cpu: "1",
+  memory: "1Gi"
+};
+
 export const navItems = [
   { id: "home", label: "ホーム" },
   { id: "container", label: "コンテナ" },
-  { id: "deploy", label: "仮想マシン" }
+  { id: "compute", label: "仮想マシン" }
 ] as const;

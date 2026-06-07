@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package dcloud.compute.v1;
+
+option go_package = "github.com/daigo-suhara/dcloud/internal/pb/computepb;computepb";
+
+service ComputeService {
+  rpc Health(HealthRequest) returns (HealthResponse);
+  rpc ListMachines(ListMachinesRequest) returns (ListMachinesResponse);
+  rpc CreateMachine(CreateMachineRequest) returns (CreateMachineResponse);
+  rpc DeleteMachine(DeleteMachineRequest) returns (DeleteMachineResponse);
+}
+
+message Empty {}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status = 1;
+  string service = 2;
+  string timestamp = 3;
+}
+
+message Machine {
+  string name = 1;
+  string image = 2;
+  string cpu = 3;
+  string memory = 4;
+  bool ready = 5;
+  string status = 6;
+  string reason = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  string namespace = 10;
+  string project_id = 11;
+  int64 generation = 12;
+}
+
+message ListMachinesRequest {
+  string user_id = 1;
+  string project_id = 2;
+}
+
+message ListMachinesResponse {
+  string user_id = 1;
+  string project_id = 2;
+  string namespace = 3;
+  repeated Machine machines = 4;
+}
+
+message CreateMachineRequest {
+  string user_id = 1;
+  string project_id = 2;
+  string name = 3;
+  string image = 4;
+  string cpu = 5;
+  string memory = 6;
+}
+
+message CreateMachineResponse {
+  Machine machine = 1;
+}
+
+message DeleteMachineRequest {
+  string user_id = 1;
+  string project_id = 2;
+  string name = 3;
+}
+
+message DeleteMachineResponse {}

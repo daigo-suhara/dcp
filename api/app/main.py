@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from fastapi import Response
 from app.routes.project import router as project_router
 from app.identity_client import IdentityClient
+from app.compute_client import ComputeClient
 from app.repository import Repository
 from app.container_client import ContainerClient
 
@@ -62,6 +63,7 @@ def startup() -> None:
             app.state.identity_client = IdentityClient.new()
             app.state.repo = Repository.new()
             app.state.container_client = ContainerClient.new()
+            app.state.compute_client = ComputeClient.new()
             return
         except Exception as exc:  # pragma: no cover - startup retry path
             last_error = exc
@@ -77,7 +79,7 @@ def healthz() -> dict[str, str]:
 
 @app.get("/readyz")
 def readyz() -> dict[str, str]:
-    if not hasattr(app.state, "repo") or not hasattr(app.state, "identity_client"):
+    if not hasattr(app.state, "repo") or not hasattr(app.state, "identity_client") or not hasattr(app.state, "compute_client"):
         raise HTTPException(status_code=503, detail="starting")
     return {"status": "ready", "service": "api"}
 
@@ -279,6 +281,71 @@ def delete_container(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="サービスが見つかりません") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return {"status": "deleted"}
+
+
+@app.get("/api/v1/compute")
+def list_compute(
+    request: Request,
+    x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project"),
+) -> dict[str, Any]:
+    user = current_user(request)
+    project_id = (x_dcp_project or "").strip()
+    if not project_id:
+        raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
+    try:
+        machines = app.state.compute_client.list_machines(user["id"], project_id)
+        return {"namespace": machines["namespace"], "user": user["id"], "projectId": project_id, "machines": machines["machines"]}
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="仮想マシン一覧を取得できません") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/compute")
+def create_compute(
+    body: dict[str, Any],
+    request: Request,
+    x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project"),
+) -> dict[str, Any]:
+    user = current_user(request)
+    project_id = (x_dcp_project or "").strip()
+    if not project_id:
+        raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
+    name = str(body.get("name", "")).strip()
+    image = str(body.get("image", "")).strip()
+    cpu = str(body.get("cpu", "1")).strip() or "1"
+    memory = str(body.get("memory", "1Gi")).strip() or "1Gi"
+    try:
+        return app.state.compute_client.create_machine(user["id"], project_id, name, image, cpu, memory)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="仮想マシンを作成できません") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.delete("/api/v1/compute/{name}")
+def delete_compute(
+    name: str,
+    request: Request,
+    x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project"),
+) -> dict[str, str]:
+    user = current_user(request)
+    project_id = (x_dcp_project or "").strip()
+    if not project_id:
+        raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
+    try:
+        app.state.compute_client.delete_machine(user["id"], project_id, name)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="仮想マシンが見つかりません") from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return {"status": "deleted"}

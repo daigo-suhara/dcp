@@ -2,7 +2,7 @@ GO_BUILD_CACHE ?= $(CURDIR)/.cache/go-build
 GO_MOD_CACHE ?= $(shell go env GOMODCACHE)
 GOPATH_BIN := $(shell go env GOPATH)/bin
 
-.PHONY: test build-project build-container build-identity build sqlc proto buf-lint
+.PHONY: test build-project build-container build-identity build-compute build sqlc proto buf-lint
 
 test:
 	mkdir -p $(GO_BUILD_CACHE) $(GO_MOD_CACHE)
@@ -31,4 +31,8 @@ build-identity:
 	mkdir -p $(GO_BUILD_CACHE) $(GO_MOD_CACHE) bin
 	GOCACHE=$(GO_BUILD_CACHE) GOMODCACHE=$(GO_MOD_CACHE) go build -o bin/identity ./internal/identity/cmd/server
 
-build: build-project build-container build-identity
+build-compute:
+	mkdir -p $(GO_BUILD_CACHE) $(GO_MOD_CACHE) bin
+	GOCACHE=$(GO_BUILD_CACHE) GOMODCACHE=$(GO_MOD_CACHE) go build -o bin/compute ./internal/compute/cmd/server
+
+build: build-project build-container build-identity build-compute
