@@ -1,7 +1,7 @@
-import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { alpha } from "@mui/material/styles";
-import { Box, Button, Card, CardContent, CircularProgress, Paper, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, CircularProgress, IconButton, Paper, Tooltip, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import type { ComputeMachine } from "../types";
 import { formatComputeTimestamp } from "../utils";
@@ -119,19 +119,33 @@ export function ComputeSection({ loading, deletingMachineName, machines, onDelet
                         </Typography>
                       </Box>
                       <Box sx={{ display: "flex", justifyContent: "flex-end", minWidth: 0 }}>
-                        <Button
-                          variant="text"
-                          size="small"
-                          color="error"
-                          startIcon={
-                            deletingMachineName === machine.name ? <CircularProgress size={14} thickness={5} sx={{ color: "inherit" }} /> : <DeleteOutlinedIcon fontSize="small" />
-                          }
-                          onClick={() => onDeleteMachine(machine.name)}
-                          disabled={deletingMachineName === machine.name}
-                          sx={{ minWidth: 0, whiteSpace: "nowrap" }}
-                        >
-                          {deletingMachineName === machine.name ? "削除中..." : "削除"}
-                        </Button>
+                        <Tooltip title="削除">
+                          <span>
+                            <IconButton
+                              color="error"
+                              disabled={deletingMachineName === machine.name}
+                              onClick={() => onDeleteMachine(machine.name)}
+                              size="small"
+                              sx={{
+                                border: "1px solid",
+                                borderColor: "error.main",
+                                bgcolor: "error.main",
+                                color: "common.white",
+                                "&:hover": {
+                                  bgcolor: "error.dark",
+                                  borderColor: "error.dark"
+                                },
+                                "&.Mui-disabled": {
+                                  bgcolor: "rgba(220, 38, 38, 0.08)",
+                                  color: "error.main",
+                                  borderColor: "rgba(220, 38, 38, 0.2)"
+                                }
+                              }}
+                            >
+                              {deletingMachineName === machine.name ? <CircularProgress size={14} thickness={5} sx={{ color: "inherit" }} /> : <DeleteOutlinedIcon fontSize="small" />}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
                       </Box>
                     </Paper>
                   );
