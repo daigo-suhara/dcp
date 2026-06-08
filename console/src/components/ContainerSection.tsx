@@ -136,12 +136,25 @@ export function ContainerSection({
               </Box>
 
               <Box sx={{ display: "grid", gap: 0 }}>
-                <Box sx={{ display: { xs: "none", sm: "grid" }, gridTemplateColumns: "42px minmax(0, 1fr)", alignItems: "center", minHeight: 36, px: 1, color: "text.secondary", fontSize: 11, fontWeight: 700, borderBottom: "1px solid rgba(148, 163, 184, 0.18)" }}>
+                <Box
+                  sx={{
+                    display: { xs: "none", sm: "grid" },
+                    gridTemplateColumns: "42px minmax(0, 1fr) 44px",
+                    alignItems: "center",
+                    minHeight: 36,
+                    px: 1,
+                    color: "text.secondary",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    borderBottom: "1px solid rgba(148, 163, 184, 0.18)"
+                  }}
+                >
                   <Box />
                   <Box sx={{ display: "grid", gridTemplateColumns: "minmax(120px, max-content) 150px", columnGap: 3 }}>
                     <Box>名前</Box>
                     <Box>更新日時</Box>
                   </Box>
+                  <Box sx={{ textAlign: "right" }}>操作</Box>
                 </Box>
 
                 <Box sx={{ borderTop: "1px solid rgba(148, 163, 184, 0.18)" }}>
@@ -162,7 +175,7 @@ export function ContainerSection({
                           variant="outlined"
                           sx={{
                             display: "grid",
-                            gridTemplateColumns: { xs: "42px minmax(0, 1fr)", sm: "42px minmax(0, 1fr)" },
+                            gridTemplateColumns: { xs: "42px minmax(0, 1fr) 44px", sm: "42px minmax(0, 1fr) 44px" },
                             gap: { xs: 0, sm: 0 },
                             alignItems: "center",
                             minHeight: { xs: 40, sm: 44 },
@@ -186,7 +199,7 @@ export function ContainerSection({
                               {service.updatedAt || service.createdAt ? formatServiceTimestamp(service.updatedAt || service.createdAt || "") : "-"}
                             </Typography>
                           </Box>
-                          <Box sx={{ display: "flex", justifyContent: "flex-end", minWidth: 0 }}>
+                          <Box sx={{ display: "flex", justifyContent: "flex-end", width: 44, minWidth: 44 }}>
                             <Tooltip title="削除">
                               <span>
                                 <IconButton

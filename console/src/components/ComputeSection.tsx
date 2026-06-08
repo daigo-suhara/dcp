@@ -34,7 +34,7 @@ export function ComputeSection({ loading, deletingMachineName, machines, onDelet
             <Box
               sx={{
                 display: { xs: "none", sm: "grid" },
-                gridTemplateColumns: "42px minmax(0, 1fr) 160px max-content",
+                gridTemplateColumns: "42px minmax(0, 1fr) 160px 44px",
                 alignItems: "center",
                 minHeight: 36,
                 px: 1,
@@ -62,7 +62,7 @@ export function ComputeSection({ loading, deletingMachineName, machines, onDelet
                       variant="outlined"
                       sx={{
                         display: "grid",
-                        gridTemplateColumns: "42px minmax(0, 1fr) 160px max-content",
+                        gridTemplateColumns: "42px minmax(0, 1fr) 160px 44px",
                         gap: 0,
                         alignItems: "center",
                         minHeight: { xs: 40, sm: 44 },
@@ -115,7 +115,7 @@ export function ComputeSection({ loading, deletingMachineName, machines, onDelet
                           {formatComputeTimestamp(machine.updatedAt || machine.createdAt)}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: "flex", justifyContent: "flex-end", minWidth: 0 }}>
+                      <Box sx={{ display: "flex", justifyContent: "flex-end", width: 44, minWidth: 44 }}>
                         <Tooltip title="削除">
                           <span>
                             <IconButton
