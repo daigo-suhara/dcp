@@ -27,7 +27,7 @@ const imagePresets = [
   },
   {
     label: "Ubuntu",
-    image: "quay.io/containerdisks/ubuntu:latest",
+    image: "quay.io/containerdisks/ubuntu:24.04",
     icon: SiUbuntu
   },
   {
