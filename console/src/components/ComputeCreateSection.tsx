@@ -1,8 +1,8 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AddIcon from "@mui/icons-material/Add";
 import { alpha } from "@mui/material/styles";
 import { Alert, Box, Button, Card, CardContent, Paper, TextField, Typography } from "@mui/material";
-import type { FormEvent } from "react";
-import { BiImageAdd } from "react-icons/bi";
+import { useEffect, useState, type FormEvent } from "react";
 import { SiCentos, SiDebian, SiFedora, SiUbuntu } from "react-icons/si";
 import type { ComputeForm } from "../types";
 import { actionLinkButtonSx } from "../theme";
@@ -24,41 +24,47 @@ const imagePresets = [
   {
     label: "Fedora",
     image: "quay.io/containerdisks/fedora:latest",
-    icon: SiFedora
+    icon: <SiFedora size={24} />
   },
   {
     label: "Ubuntu",
     image: "quay.io/containerdisks/ubuntu:24.04",
-    icon: SiUbuntu
+    icon: <SiUbuntu size={24} />
   },
   {
     label: "Debian",
     image: "quay.io/containerdisks/debian:latest",
-    icon: SiDebian
+    icon: <SiDebian size={24} />
   },
   {
     label: "CentOS Stream",
     image: "quay.io/containerdisks/centos-stream:latest",
-    icon: SiCentos
+    icon: <SiCentos size={24} />
   },
   {
     label: "カスタム",
     image: "",
-    icon: BiImageAdd
+    icon: <AddIcon fontSize="small" />
   }
 ] as const;
 
 export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, submitting }: ComputeCreateSectionProps) {
   const machineName = form.name.trim();
   const machineNameError = machineName.length > 0 && !isDnsLabel(machineName);
-  const isCustomImage = !imagePresets.some((preset) => preset.image === form.image);
+  const selectedPreset = imagePresets.find((preset) => preset.image === form.image) ?? null;
+  const [customMode, setCustomMode] = useState(!selectedPreset);
 
-  function fillSample() {
-    onChange({
-      image: "quay.io/containerdisks/fedora:latest",
-      cpu: "1",
-      memory: "1Gi"
-    });
+  useEffect(() => {
+    setCustomMode((current) => current || !selectedPreset);
+  }, [selectedPreset]);
+
+  function selectPreset(image: string) {
+    setCustomMode(false);
+    onChange({ image });
+  }
+
+  function selectCustom() {
+    setCustomMode(true);
   }
 
   return (
@@ -81,9 +87,6 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
                   イメージを選ぶ
                 </Typography>
               </Box>
-              <Button type="button" variant="text" size="small" onClick={fillSample} sx={actionLinkButtonSx}>
-                サンプルVMを使用
-              </Button>
             </Box>
 
             <Box
@@ -98,20 +101,27 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
               }}
             >
               {imagePresets.map((preset) => {
-                const Icon = preset.icon;
-                const selected = preset.image === form.image || (preset.image === "" && isCustomImage);
+                const selected = preset.image === ""
+                  ? customMode
+                  : selectedPreset?.image === preset.image && !customMode;
                 return (
                   <Paper
                     key={preset.image || "custom"}
                     component="button"
                     type="button"
-                    onClick={() => onChange({ image: preset.image })}
+                    onClick={() => {
+                      if (preset.image === "") {
+                        selectCustom();
+                        return;
+                      }
+                      selectPreset(preset.image);
+                    }}
                     variant="outlined"
                     sx={{
                       textAlign: "center",
                       width: "100%",
-                      minHeight: 106,
-                      p: 1.25,
+                      minHeight: 102,
+                      p: 1.1,
                       borderRadius: 1.75,
                       borderColor: selected ? "primary.main" : "rgba(148, 163, 184, 0.18)",
                       bgcolor: selected ? alpha("#2563eb", 0.08) : "background.paper",
@@ -129,16 +139,22 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
                   >
                     <Box
                       sx={{
-                        width: 46,
-                        height: 46,
-                        display: "grid",
-                        placeItems: "center",
-                        borderRadius: "999px",
-                        color: selected ? "primary.main" : "text.secondary",
-                        bgcolor: selected ? alpha("#2563eb", 0.12) : alpha("#0f172a", 0.04)
-                      }}
-                    >
-                      <Icon size={24} />
+                      width: 48,
+                      height: 48,
+                      display: "grid",
+                      placeItems: "center",
+                      borderRadius: "999px",
+                      color: preset.image === "" ? "#fff" : selected ? "primary.main" : "text.secondary",
+                      bgcolor: preset.image === ""
+                        ? "transparent"
+                        : selected
+                          ? alpha("#2563eb", 0.12)
+                          : alpha("#0f172a", 0.04),
+                      backgroundImage: preset.image === "" ? "linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #ec4899 100%)" : undefined,
+                      boxShadow: preset.image === "" ? "0 10px 24px rgba(37, 99, 235, 0.22)" : undefined
+                    }}
+                  >
+                      {preset.icon}
                     </Box>
                     <Typography sx={{ fontWeight: 800, lineHeight: 1.2, fontSize: "0.92rem" }}>{preset.label}</Typography>
                   </Paper>
@@ -146,7 +162,7 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
               })}
             </Box>
 
-            {isCustomImage ? (
+            {customMode ? (
               <TextField
                 label="イメージ URL"
                 value={form.image}
