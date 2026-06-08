@@ -24,9 +24,6 @@ export function ComputeSection({ loading, deletingMachineName, machines, onDelet
               <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 仮想マシン
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                作成済みの VM を一覧で確認できます。
-              </Typography>
             </Box>
             <Button variant="contained" onClick={onOpenCreate}>
               仮想マシンを作成
