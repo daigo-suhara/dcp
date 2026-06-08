@@ -21,6 +21,9 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
   const terminalContainerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
+  const retryTimerRef = useRef<number | null>(null);
+  const disposedRef = useRef(false);
+  const socketReadyRef = useRef(false);
   const [terminalStatus, setTerminalStatus] = useState("接続待ち");
 
   const isReady = machine?.ready ?? false;
@@ -42,6 +45,9 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
       return;
     }
 
+    disposedRef.current = false;
+    socketReadyRef.current = false;
+
     const terminal = new Terminal({
       cursorBlink: true,
       fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace',
@@ -60,9 +66,8 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
     terminal.writeln("DCloud serial console");
     terminal.writeln("");
 
-    let disposed = false;
     const resize = () => {
-      if (disposed) {
+      if (disposedRef.current) {
         return;
       }
       const rect = container.getBoundingClientRect();
@@ -74,21 +79,48 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
     resize();
     const observer = new ResizeObserver(() => resize());
     observer.observe(container);
+    const dataDisposable = terminal.onData((data) => {
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(data);
+      }
+    });
 
-    const socket = machine ? new WebSocket(`/api/v1/compute/${encodeURIComponent(machineName)}/console?projectId=${encodeURIComponent(projectId)}`) : null;
-    socketRef.current = socket;
+    const clearRetryTimer = () => {
+      if (retryTimerRef.current !== null) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
 
-    if (socket) {
+    const connect = () => {
+      clearRetryTimer();
+      if (disposedRef.current || !machine) {
+        return;
+      }
+      if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+        return;
+      }
+
+      setTerminalStatus(machine.ready ? "接続中" : "起動待ち");
+      if (!machine.ready) {
+        terminal.writeln("[waiting for vm to start]");
+      }
+
+      const socket = new WebSocket(`/api/v1/compute/${encodeURIComponent(machineName)}/console?projectId=${encodeURIComponent(projectId)}`);
+      socketRef.current = socket;
       socket.binaryType = "arraybuffer";
+
       socket.onopen = () => {
-        if (disposed) {
+        if (disposedRef.current) {
           return;
         }
+        socketReadyRef.current = true;
         setTerminalStatus("接続中");
         terminal.writeln("[connected]");
       };
+
       socket.onmessage = (event) => {
-        if (disposed) {
+        if (disposedRef.current) {
           return;
         }
         if (typeof event.data === "string") {
@@ -101,51 +133,46 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
         }
         terminal.write(new TextDecoder().decode(payload));
       };
+
       socket.onerror = () => {
-        if (disposed) {
+        if (disposedRef.current) {
           return;
         }
+        socketReadyRef.current = false;
         setTerminalStatus("接続エラー");
         terminal.writeln("");
         terminal.writeln("[console error]");
       };
+
       socket.onclose = () => {
-        if (disposed) {
+        if (disposedRef.current) {
           return;
         }
-        setTerminalStatus("切断");
-        terminal.writeln("");
-        terminal.writeln("[disconnected]");
-      };
-
-      const dataDisposable = terminal.onData((data) => {
-        if (socket.readyState === WebSocket.OPEN) {
-          socket.send(data);
-        }
-      });
-
-      return () => {
-        disposed = true;
-        dataDisposable.dispose();
-        observer.disconnect();
-        socket.close();
-        terminal.dispose();
+        socketReadyRef.current = false;
         socketRef.current = null;
-        terminalRef.current = null;
+        setTerminalStatus(machine.ready ? "再接続待ち" : "起動待ち");
+        terminal.writeln("");
+        terminal.writeln(machine.ready ? "[disconnected: retrying]" : "[waiting for vm to start]");
+        retryTimerRef.current = window.setTimeout(() => {
+          if (!disposedRef.current) {
+            connect();
+          }
+        }, machine.ready ? 2000 : 3000);
       };
-    }
+    };
 
-    const dataDisposable = terminal.onData(() => {
-      // no-op until the console connection is available
-    });
+    connect();
 
     return () => {
-      disposed = true;
-      dataDisposable.dispose();
+      disposedRef.current = true;
+      clearRetryTimer();
       observer.disconnect();
-      terminal.dispose();
+      dataDisposable.dispose();
+      socketRef.current?.close();
       socketRef.current = null;
+      terminal.dispose();
       terminalRef.current = null;
+      socketReadyRef.current = false;
     };
   }, [isReady, machine?.name, machine?.ready, loading, machineName, projectId]);
 
