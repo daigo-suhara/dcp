@@ -6,7 +6,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Terminal } from "xterm";
 import "xterm/css/xterm.css";
 import type { ComputeMachine } from "../types";
-import { actionLinkButtonSx } from "../theme";
 import { formatComputeStatus, formatComputeTimestamp } from "../utils";
 
 type ComputeDetailSectionProps = {
@@ -184,30 +183,30 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
 
   return (
     <Box sx={{ display: "grid", gap: 3 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-        <Button type="button" variant="text" size="small" startIcon={<ArrowBackIcon fontSize="small" />} onClick={onBack} sx={actionLinkButtonSx}>
-          一覧へ戻る
-        </Button>
-        <Typography variant="h5" sx={{ fontWeight: 800 }}>
-          仮想マシン
-        </Typography>
-      </Box>
-
       <Card variant="outlined" sx={{ borderRadius: 2 }}>
         <CardContent sx={{ p: { xs: 2.5, sm: 3 }, display: "grid", gap: 2.5 }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-            <Box sx={{ display: "grid", gap: 0.5 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, wordBreak: "break-all" }}>
-                {machine?.name ?? machineName}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 2, flexWrap: "wrap" }}>
+            <Box sx={{ display: "grid", gap: 0.75, minWidth: 0 }}>
+              <Typography variant="overline" color="primary">
+                仮想マシン詳細
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {status}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
+                <Box sx={{ width: 34, height: 34, borderRadius: "999px", display: "grid", placeItems: "center", bgcolor: isReady ? "transparent" : alpha("#2563eb", 0.12), color: isReady ? "success.main" : "primary.main" }}>
+                  {isReady ? <CheckCircleIcon fontSize="small" /> : <CircularProgress size={16} thickness={5} sx={{ color: "inherit" }} />}
+                </Box>
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, wordBreak: "break-word" }}>
+                    {machine?.name ?? machineName}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {status}
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: isReady ? "success.main" : "text.secondary" }}>
-            {isReady ? <CheckCircleIcon fontSize="small" /> : <CircularProgress size={16} thickness={5} sx={{ color: "inherit" }} />}
-            <Typography variant="caption">{terminalStatus}</Typography>
-          </Box>
+            <Button startIcon={<ArrowBackIcon />} onClick={onBack}>
+              一覧に戻る
+            </Button>
           </Box>
 
           <Box
@@ -236,12 +235,6 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
                 更新日時
               </Typography>
               <Typography sx={{ fontWeight: 700 }}>{formatComputeTimestamp(machine?.updatedAt || machine?.createdAt)}</Typography>
-            </Paper>
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                名前空間
-              </Typography>
-              <Typography sx={{ fontWeight: 700, wordBreak: "break-all" }}>{machine?.namespace ?? "-"}</Typography>
             </Paper>
           </Box>
 
