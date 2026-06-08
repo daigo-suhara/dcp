@@ -22,33 +22,27 @@ type ComputeCreateSectionProps = {
 const imagePresets = [
   {
     label: "Fedora",
-    image: "quay.io/containerdisks/fedora:latest",
-    note: "標準の Fedora Cloud Edition"
+    image: "quay.io/containerdisks/fedora:latest"
   },
   {
     label: "Ubuntu",
-    image: "quay.io/containerdisks/ubuntu:latest",
-    note: "軽量で扱いやすい定番"
+    image: "quay.io/containerdisks/ubuntu:latest"
   },
   {
     label: "Debian",
-    image: "quay.io/containerdisks/debian:latest",
-    note: "シンプルなベースイメージ"
+    image: "quay.io/containerdisks/debian:latest"
   },
   {
     label: "CentOS Stream",
-    image: "quay.io/containerdisks/centos-stream:latest",
-    note: "RHEL 系のテスト向け"
+    image: "quay.io/containerdisks/centos-stream:latest"
   },
   {
     label: "openSUSE Leap",
-    image: "quay.io/containerdisks/opensuse-leap:latest",
-    note: "安定版の openSUSE"
+    image: "quay.io/containerdisks/opensuse-leap:latest"
   },
   {
     label: "openSUSE Tumbleweed",
-    image: "quay.io/containerdisks/opensuse-tumbleweed:latest",
-    note: "更新の速い rolling release"
+    image: "quay.io/containerdisks/opensuse-tumbleweed:latest"
   }
 ] as const;
 
@@ -96,10 +90,11 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
             <Box
               sx={{
                 display: "grid",
-                gap: 1.5,
+                gap: 1,
                 gridTemplateColumns: {
                   xs: "1fr",
-                  sm: "repeat(2, minmax(0, 1fr))"
+                  sm: "repeat(2, minmax(0, 1fr))",
+                  lg: "repeat(3, minmax(0, 1fr))"
                 }
               }}
             >
@@ -115,8 +110,8 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
                     sx={{
                       textAlign: "left",
                       width: "100%",
-                      p: 2,
-                      borderRadius: 2,
+                      p: 1.25,
+                      borderRadius: 1.75,
                       borderColor: selected ? "primary.main" : "rgba(148, 163, 184, 0.18)",
                       bgcolor: selected ? alpha("#2563eb", 0.06) : "background.paper",
                       cursor: "pointer",
@@ -128,13 +123,8 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
                       }
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
-                      <Box sx={{ display: "grid", gap: 0.25, minWidth: 0 }}>
-                        <Typography sx={{ fontWeight: 800 }}>{preset.label}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {preset.image}
-                        </Typography>
-                      </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, minWidth: 0 }}>
+                      <Typography sx={{ fontWeight: 800, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{preset.label}</Typography>
                       <Box
                         sx={{
                           width: 28,
@@ -149,9 +139,6 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
                         {selected ? <CheckCircleIcon fontSize="small" /> : <CircularProgress size={14} thickness={6} sx={{ color: "inherit" }} />}
                       </Box>
                     </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {preset.note}
-                    </Typography>
                   </Paper>
                 );
               })}
@@ -161,7 +148,7 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
               <Typography variant="caption" color="text.secondary">
                 選択中のイメージ
               </Typography>
-              <Typography sx={{ fontWeight: 700, wordBreak: "break-all" }}>{(selectedPreset?.image ?? form.image) || "-"}</Typography>
+              <Typography sx={{ fontWeight: 700, wordBreak: "break-all" }}>{(selectedPreset?.label ?? form.image) || "-"}</Typography>
             </Paper>
           </CardContent>
         </Card>
