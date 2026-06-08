@@ -23,7 +23,7 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
   const socketRef = useRef<WebSocket | null>(null);
   const retryTimerRef = useRef<number | null>(null);
   const disposedRef = useRef(false);
-  const [terminalStatus, setTerminalStatus] = useState("接続待ち");
+  const [terminalStatus, setTerminalStatus] = useState("起動待ち");
 
   const isReady = machine?.ready ?? false;
   const status = machine ? formatComputeStatus(machine) : loading ? "読み込み中" : "未検出";
@@ -45,6 +45,19 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
     }
 
     disposedRef.current = false;
+
+    if (!isReady) {
+      socketRef.current?.close();
+      socketRef.current = null;
+      if (terminalRef.current) {
+        terminalRef.current.dispose();
+        terminalRef.current = null;
+      }
+      setTerminalStatus("起動待ち");
+      return () => {
+        disposedRef.current = true;
+      };
+    }
 
     const terminal = new Terminal({
       cursorBlink: true,
@@ -100,10 +113,7 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
         return;
       }
 
-      setTerminalStatus(machine.ready ? "接続中" : "起動待ち");
-      if (!machine.ready) {
-        terminal.writeln("[waiting for vm to start]");
-      }
+      setTerminalStatus("接続中");
 
       const socket = new WebSocket(`/api/v1/compute/${encodeURIComponent(machineName)}/console?projectId=${encodeURIComponent(projectId)}`);
       socketRef.current = socket;
@@ -147,14 +157,14 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
         }
         socketRef.current = null;
         terminal.write(decoder.decode());
-        setTerminalStatus(machine.ready ? "再接続待ち" : "起動待ち");
+        setTerminalStatus("再接続待ち");
         terminal.writeln("");
-        terminal.writeln(machine.ready ? "[disconnected: retrying]" : "[waiting for vm to start]");
+        terminal.writeln("[disconnected: retrying]");
         retryTimerRef.current = window.setTimeout(() => {
           if (!disposedRef.current) {
             connect();
           }
-        }, machine.ready ? 2000 : 3000);
+        }, 2000);
       };
     };
 
@@ -170,7 +180,7 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
       terminal.dispose();
       terminalRef.current = null;
     };
-  }, [isReady, machine?.name, machine?.ready, loading, machineName, projectId]);
+  }, [isReady, machine?.name, loading, machineName, projectId]);
 
   return (
     <Box sx={{ display: "grid", gap: 3 }}>
@@ -194,10 +204,10 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
                 {status}
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: isReady ? "success.main" : "text.secondary" }}>
-              {isReady ? <CheckCircleIcon fontSize="small" /> : <CircularProgress size={16} thickness={5} sx={{ color: "inherit" }} />}
-              <Typography variant="caption">{terminalStatus}</Typography>
-            </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: isReady ? "success.main" : "text.secondary" }}>
+            {isReady ? <CheckCircleIcon fontSize="small" /> : <CircularProgress size={16} thickness={5} sx={{ color: "inherit" }} />}
+            <Typography variant="caption">{terminalStatus}</Typography>
+          </Box>
           </Box>
 
           <Box
@@ -249,7 +259,24 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
                 borderColor: "rgba(148, 163, 184, 0.22)"
               }}
             >
-              <Box ref={terminalContainerRef} sx={{ height: { xs: 360, md: 520 }, width: "100%" }} />
+              {isReady ? (
+                <Box ref={terminalContainerRef} sx={{ height: { xs: 360, md: 520 }, width: "100%" }} />
+              ) : (
+                <Box
+                  sx={{
+                    height: { xs: 360, md: 520 },
+                    width: "100%",
+                    display: "grid",
+                    placeItems: "center",
+                    color: "#dbe4ff",
+                    fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace'
+                  }}
+                >
+                  <Typography variant="body2" sx={{ color: "rgba(219, 228, 255, 0.78)" }}>
+                    [waiting for vm to start]
+                  </Typography>
+                </Box>
+              )}
             </Paper>
           </Box>
         </CardContent>
