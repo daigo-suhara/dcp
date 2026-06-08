@@ -24,22 +24,22 @@ const imagePresets = [
   {
     label: "Fedora",
     image: "quay.io/containerdisks/fedora:latest",
-    icon: <SiFedora size={24} />
+    icon: <SiFedora size={24} color="#51A2DA" />
   },
   {
     label: "Ubuntu",
     image: "quay.io/containerdisks/ubuntu:24.04",
-    icon: <SiUbuntu size={24} />
+    icon: <SiUbuntu size={24} color="#E95420" />
   },
   {
     label: "Debian",
     image: "quay.io/containerdisks/debian:latest",
-    icon: <SiDebian size={24} />
+    icon: <SiDebian size={24} color="#A81D33" />
   },
   {
     label: "CentOS Stream",
     image: "quay.io/containerdisks/centos-stream:latest",
-    icon: <SiCentos size={24} />
+    icon: <SiCentos size={24} color="#262577" />
   },
   {
     label: "カスタム",
@@ -139,21 +139,15 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
                   >
                     <Box
                       sx={{
-                      width: 48,
-                      height: 48,
-                      display: "grid",
-                      placeItems: "center",
-                      borderRadius: "999px",
-                      color: preset.image === "" ? "#fff" : selected ? "primary.main" : "text.secondary",
-                      bgcolor: preset.image === ""
-                        ? "transparent"
-                        : selected
-                          ? alpha("#2563eb", 0.12)
-                          : alpha("#0f172a", 0.04),
-                      backgroundImage: preset.image === "" ? "linear-gradient(135deg, #2563eb 0%, #7c3aed 55%, #ec4899 100%)" : undefined,
-                      boxShadow: preset.image === "" ? "0 10px 24px rgba(37, 99, 235, 0.22)" : undefined
-                    }}
-                  >
+                        width: 48,
+                        height: 48,
+                        display: "grid",
+                        placeItems: "center",
+                        borderRadius: "999px",
+                        color: selected ? "primary.main" : "text.secondary",
+                        bgcolor: selected ? alpha("#2563eb", 0.12) : alpha("#0f172a", 0.04)
+                      }}
+                    >
                       {preset.icon}
                     </Box>
                     <Typography sx={{ fontWeight: 800, lineHeight: 1.2, fontSize: "0.92rem" }}>{preset.label}</Typography>
