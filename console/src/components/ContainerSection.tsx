@@ -56,14 +56,9 @@ export function ContainerSection({
                   <Typography variant="overline" color="primary">
                     サービス詳細
                   </Typography>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
-                    <Box sx={{ width: 34, height: 34, borderRadius: "999px", display: "grid", placeItems: "center", bgcolor: selectedStatus === "ready" ? "transparent" : selectedStatus === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: selectedStatus === "ready" ? "success.main" : selectedStatus === "loading" ? "primary.main" : "error.main" }}>
-                      {selectedStatusIcon}
-                    </Box>
-                    <Typography variant="h5" sx={{ fontWeight: 700, wordBreak: "break-word" }}>
-                      {selectedService.name}
-                    </Typography>
-                  </Box>
+                  <Typography variant="h5" sx={{ fontWeight: 700, wordBreak: "break-word" }}>
+                    {selectedService.name}
+                  </Typography>
                 </Box>
                 <Button startIcon={<ArrowBackIcon />} onClick={onBackToList}>
                   一覧に戻る
