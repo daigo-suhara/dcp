@@ -5,7 +5,7 @@ import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
-import { Box, Button, Card, CardContent, CircularProgress, Paper, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, CircularProgress, IconButton, Paper, Tooltip, Typography } from "@mui/material";
 import { Link as RouterLink } from "react-router-dom";
 import type { DeployedService } from "../types";
 import { actionLinkButtonSx } from "../theme";
@@ -172,7 +172,7 @@ export function ContainerSection({
                             borderRight: 0,
                             borderTop: 0
                           }}
-                        >
+                          >
                           <Box sx={{ display: "grid", placeItems: "center" }}>
                             <Box sx={{ width: 22, height: 22, display: "grid", placeItems: "center", borderRadius: "999px", bgcolor: status === "ready" ? "transparent" : status === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12), color: status === "ready" ? "success.main" : status === "loading" ? "primary.main" : "error.main" }}>
                               {statusIcon}
@@ -185,6 +185,35 @@ export function ContainerSection({
                             <Typography variant="body2" color="text.secondary" sx={{ display: { xs: "none", sm: "block" }, whiteSpace: { xs: "normal", sm: "nowrap" } }}>
                               {service.updatedAt || service.createdAt ? formatServiceTimestamp(service.updatedAt || service.createdAt || "") : "-"}
                             </Typography>
+                          </Box>
+                          <Box sx={{ display: "flex", justifyContent: "flex-end", minWidth: 0 }}>
+                            <Tooltip title="削除">
+                              <span>
+                                <IconButton
+                                  color="error"
+                                  disabled={deletingServiceName === service.name}
+                                  onClick={() => onDeleteService(service.name)}
+                                  size="small"
+                                  sx={{
+                                    border: "1px solid",
+                                    borderColor: "error.main",
+                                    bgcolor: "error.main",
+                                    color: "common.white",
+                                    "&:hover": {
+                                      bgcolor: "error.dark",
+                                      borderColor: "error.dark"
+                                    },
+                                    "&.Mui-disabled": {
+                                      bgcolor: "rgba(220, 38, 38, 0.08)",
+                                      color: "error.main",
+                                      borderColor: "rgba(220, 38, 38, 0.2)"
+                                    }
+                                  }}
+                                >
+                                  {deletingServiceName === service.name ? <CircularProgress size={14} thickness={5} sx={{ color: "inherit" }} /> : <DeleteOutlinedIcon fontSize="small" />}
+                                </IconButton>
+                              </span>
+                            </Tooltip>
                           </Box>
                         </Paper>
                       );
