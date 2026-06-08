@@ -6,6 +6,7 @@ import "./styles.css";
 import { AuthScreen } from "./components/AuthScreen";
 import { AppShell } from "./components/AppShell";
 import { ContainerSection } from "./components/ContainerSection";
+import { ComputeCreateSection } from "./components/ComputeCreateSection";
 import { ComputeDetailSection } from "./components/ComputeDetailSection";
 import { ComputeSection } from "./components/ComputeSection";
 import { DeploySection } from "./components/DeploySection";
@@ -104,7 +105,17 @@ function AppContent() {
         projects={controller.projects}
         route={controller.route}
         sidebarOpen={controller.sidebarOpen}
-        onNavigate={(section) => navigate(section === "compute" ? "/compute" : section === "deploy" ? "/container/deploy" : `/${section}`)}
+        onNavigate={(section) =>
+          navigate(
+            section === "compute"
+              ? "/compute"
+              : section === "compute-create"
+                ? "/compute/new"
+                : section === "deploy"
+                  ? "/container/deploy"
+                  : `/${section}`
+          )
+        }
       >
         {visibleSection === "home" ? (
           <HomeSection
@@ -145,17 +156,22 @@ function AppContent() {
             projectId={controller.activeProjectId}
             onBack={() => navigate("/compute")}
           />
+        ) : visibleSection === "compute-create" ? (
+          <ComputeCreateSection
+            error={controller.error}
+            form={controller.computeForm}
+            onBack={() => navigate("/compute")}
+            onChange={controller.handleComputeFormChange}
+            onSubmit={controller.handleComputeSubmit}
+            submitting={controller.computeSubmitting}
+          />
         ) : visibleSection === "compute" ? (
           <ComputeSection
             deletingMachineName={controller.deletingMachineName}
-            error={controller.error}
-            form={controller.computeForm}
             loading={controller.computeLoading}
             machines={controller.computeMachines}
-            onChange={controller.handleComputeFormChange}
             onDeleteMachine={controller.confirmDeleteMachine}
-            onSubmit={controller.handleComputeSubmit}
-            submitting={controller.computeSubmitting}
+            onOpenCreate={() => navigate("/compute/new")}
           />
         ) : visibleSection === "deploy" ? (
           <DeploySection

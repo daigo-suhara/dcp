@@ -15,6 +15,9 @@ export function parseRoute(pathname: string): RouteState {
     return { section: "deploy", selectedServiceName: null, selectedComputeMachineName: null };
   }
   if (normalizedSection === "compute") {
+    if (rest[0] === "new") {
+      return { section: "compute-create", selectedServiceName: null, selectedComputeMachineName: null };
+    }
     if (rest.length > 0) {
       return {
         section: "compute",
@@ -35,7 +38,7 @@ export function parseRoute(pathname: string): RouteState {
     };
   }
 
-  if (normalizedSection === "home" || normalizedSection === "container" || normalizedSection === "deploy" || normalizedSection === "compute" || normalizedSection === "project-create" || normalizedSection === "repository") {
+  if (normalizedSection === "home" || normalizedSection === "container" || normalizedSection === "deploy" || normalizedSection === "compute" || normalizedSection === "compute-create" || normalizedSection === "project-create" || normalizedSection === "repository") {
     return { section: normalizedSection, selectedServiceName: null, selectedComputeMachineName: null };
   }
 

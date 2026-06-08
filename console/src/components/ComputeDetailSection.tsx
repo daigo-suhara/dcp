@@ -23,7 +23,6 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
   const socketRef = useRef<WebSocket | null>(null);
   const retryTimerRef = useRef<number | null>(null);
   const disposedRef = useRef(false);
-  const socketReadyRef = useRef(false);
   const [terminalStatus, setTerminalStatus] = useState("接続待ち");
 
   const isReady = machine?.ready ?? false;
@@ -46,7 +45,6 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
     }
 
     disposedRef.current = false;
-    socketReadyRef.current = false;
 
     const terminal = new Terminal({
       cursorBlink: true,
@@ -115,7 +113,6 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
         if (disposedRef.current) {
           return;
         }
-        socketReadyRef.current = true;
         setTerminalStatus("接続中");
         terminal.writeln("[connected]");
       };
@@ -139,7 +136,6 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
         if (disposedRef.current) {
           return;
         }
-        socketReadyRef.current = false;
         setTerminalStatus("接続エラー");
         terminal.writeln("");
         terminal.writeln("[console error]");
@@ -149,7 +145,6 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
         if (disposedRef.current) {
           return;
         }
-        socketReadyRef.current = false;
         socketRef.current = null;
         terminal.write(decoder.decode());
         setTerminalStatus(machine.ready ? "再接続待ち" : "起動待ち");
@@ -174,7 +169,6 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
       socketRef.current = null;
       terminal.dispose();
       terminalRef.current = null;
-      socketReadyRef.current = false;
     };
   }, [isReady, machine?.name, machine?.ready, loading, machineName, projectId]);
 

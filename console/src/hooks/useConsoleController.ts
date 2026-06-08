@@ -511,6 +511,7 @@ export function useConsoleController() {
       }
       if ("name" in data) {
         setMessage(`${data.name} を作成しました`);
+        navigate(`/compute/${encodeURIComponent(data.name)}`);
       }
       setComputeForm((current) => ({ ...current, name: "" }));
       await loadComputeMachines();

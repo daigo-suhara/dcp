@@ -73,7 +73,7 @@ export type DeployForm = {
 };
 
 export type RouteState = {
-  section: "home" | "container" | "compute" | "deploy" | "project-create" | "repository";
+  section: "home" | "container" | "compute" | "compute-create" | "deploy" | "project-create" | "repository";
   selectedServiceName: string | null;
   selectedComputeMachineName: string | null;
 };
