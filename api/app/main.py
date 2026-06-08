@@ -460,11 +460,11 @@ async def compute_console(websocket: WebSocket, name: str) -> None:
                             break
                         text = message.get("text")
                         if text is not None:
-                            await upstream.send(bytes([0]) + text.encode("utf-8"))
+                            await upstream.send(text.encode("utf-8"))
                             continue
                         data = message.get("bytes")
                         if data is not None:
-                            await upstream.send(bytes([0]) + data)
+                            await upstream.send(data)
                 except WebSocketDisconnect:
                     return
 
@@ -472,7 +472,7 @@ async def compute_console(websocket: WebSocket, name: str) -> None:
                 try:
                     async for message in upstream:
                         if isinstance(message, bytes):
-                            payload = message[1:] if len(message) > 1 else b""
+                            payload = message
                             if not payload:
                                 continue
                             await websocket.send_bytes(payload)
