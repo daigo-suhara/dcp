@@ -56,6 +56,7 @@ export function useConsoleController() {
   const [deletingName, setDeletingName] = useState("");
   const [deletingMachineName, setDeletingMachineName] = useState("");
   const [pendingDeleteName, setPendingDeleteName] = useState("");
+  const [pendingDeleteMachineName, setPendingDeleteMachineName] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [form, setForm] = useState(initialForm);
@@ -577,6 +578,14 @@ export function useConsoleController() {
     setPendingDeleteName("");
   }
 
+  function requestDeleteMachine(name: string) {
+    setPendingDeleteMachineName(name);
+  }
+
+  function cancelDeleteMachine() {
+    setPendingDeleteMachineName("");
+  }
+
   function requestDeleteProject(projectId: string, projectName: string) {
     setPendingProjectDeleteId(projectId);
     setPendingProjectDeleteName(projectName);
@@ -615,6 +624,7 @@ export function useConsoleController() {
   }
 
   async function confirmDeleteMachine(name: string) {
+    setPendingDeleteMachineName("");
     setDeletingMachineName(name);
     setError("");
     setMessage("");
@@ -672,6 +682,7 @@ export function useConsoleController() {
     authLoading,
     authSubmitting,
     cancelDelete,
+    cancelDeleteMachine,
     cancelProjectDelete,
     confirmDelete,
     confirmDeleteMachine,
@@ -696,6 +707,7 @@ export function useConsoleController() {
     loading,
     message,
     projectsLoaded,
+    pendingDeleteMachineName,
     pendingDeleteName,
     pendingProjectDeleteId,
     pendingProjectDeleteName,
@@ -710,6 +722,7 @@ export function useConsoleController() {
     computeMachines,
     deletingMachineName,
     requestDelete,
+    requestDeleteMachine,
     requestDeleteProject,
     route,
     selectedService,

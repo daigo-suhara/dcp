@@ -1,5 +1,6 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { alpha } from "@mui/material/styles";
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Paper, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -13,10 +14,12 @@ type ComputeDetailSectionProps = {
   machineName: string;
   loading: boolean;
   projectId: string;
+  deletingMachineName: string;
   onBack: () => void;
+  onDeleteMachine: (name: string) => void;
 };
 
-export function ComputeDetailSection({ machine, machineName, loading, projectId, onBack }: ComputeDetailSectionProps) {
+export function ComputeDetailSection({ machine, machineName, loading, projectId, deletingMachineName, onBack, onDeleteMachine }: ComputeDetailSectionProps) {
   const terminalContainerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -240,6 +243,18 @@ export function ComputeDetailSection({ machine, machineName, loading, projectId,
               </Typography>
               <Typography sx={{ fontWeight: 700 }}>{formatComputeTimestamp(machine?.updatedAt || machine?.createdAt)}</Typography>
             </Paper>
+          </Box>
+
+          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={deletingMachineName === machineName ? <CircularProgress size={16} thickness={5} sx={{ color: "inherit" }} /> : <DeleteOutlinedIcon />}
+              onClick={() => onDeleteMachine(machineName)}
+              disabled={deletingMachineName === machineName}
+            >
+              {deletingMachineName === machineName ? "削除中..." : "削除"}
+            </Button>
           </Box>
 
           <Box sx={{ display: "grid", gap: 1 }}>

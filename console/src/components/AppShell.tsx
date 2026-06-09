@@ -9,20 +9,24 @@ import { Header } from "./shell/Header";
 type AppShellProps = {
   activeProjectId: string;
   children: ReactNode;
+  deletingMachineName: string;
   deletingName: string;
   deletingProjectId: string;
   hasProjects: boolean;
   message: string;
   onCancelDelete: () => void;
+  onCancelDeleteMachine: () => void;
   onCancelProjectDelete: () => void;
   onCloseSidebar: () => void;
   onConfirmDelete: (name: string) => void;
+  onConfirmDeleteMachine: (name: string) => void;
   onConfirmDeleteProject: (projectId: string) => void;
   onNavigate: (section: RouteState["section"]) => void;
   onProjectSelect: (projectId: string) => void;
   onToggleSidebar: () => void;
   onLogout: () => void;
   onClearMessage: () => void;
+  pendingDeleteMachineName: string;
   pendingDeleteName: string;
   pendingProjectDeleteId: string;
   pendingProjectDeleteName: string;
@@ -34,20 +38,24 @@ type AppShellProps = {
 export function AppShell({
   activeProjectId,
   children,
+  deletingMachineName,
   deletingName,
   deletingProjectId,
   hasProjects,
   message,
   onCancelDelete,
+  onCancelDeleteMachine,
   onCancelProjectDelete,
   onCloseSidebar,
   onConfirmDelete,
+  onConfirmDeleteMachine,
   onConfirmDeleteProject,
   onNavigate,
   onProjectSelect,
   onToggleSidebar,
   onLogout,
   onClearMessage,
+  pendingDeleteMachineName,
   pendingDeleteName,
   pendingProjectDeleteId,
   pendingProjectDeleteName,
@@ -77,12 +85,16 @@ export function AppShell({
         {children}
       </Container>
       <Dialogs
+        deletingMachineName={deletingMachineName}
         deletingName={deletingName}
         deletingProjectId={deletingProjectId}
         onCancelDelete={onCancelDelete}
+        onCancelDeleteMachine={onCancelDeleteMachine}
         onCancelProjectDelete={onCancelProjectDelete}
         onConfirmDelete={onConfirmDelete}
+        onConfirmDeleteMachine={onConfirmDeleteMachine}
         onConfirmDeleteProject={onConfirmDeleteProject}
+        pendingDeleteMachineName={pendingDeleteMachineName}
         pendingDeleteName={pendingDeleteName}
         pendingProjectDeleteId={pendingProjectDeleteId}
         pendingProjectDeleteName={pendingProjectDeleteName}

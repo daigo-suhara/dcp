@@ -86,19 +86,23 @@ function AppContent() {
       <CssBaseline />
       <AppShell
         activeProjectId={controller.activeProjectId}
+        deletingMachineName={controller.deletingMachineName}
         deletingName={controller.deletingName}
         deletingProjectId={controller.deletingProjectId}
         hasProjects={controller.projects.length > 0}
         message={controller.message}
         onCancelDelete={controller.cancelDelete}
+        onCancelDeleteMachine={controller.cancelDeleteMachine}
         onCancelProjectDelete={controller.cancelProjectDelete}
         onClearMessage={() => controller.setMessage("")}
         onCloseSidebar={() => controller.setSidebarOpen(false)}
         onConfirmDelete={controller.confirmDelete}
+        onConfirmDeleteMachine={controller.confirmDeleteMachine}
         onConfirmDeleteProject={controller.confirmDeleteProject}
         onProjectSelect={controller.handleProjectSelect}
         onToggleSidebar={() => controller.setSidebarOpen(true)}
         onLogout={controller.startLogout}
+        pendingDeleteMachineName={controller.pendingDeleteMachineName}
         pendingDeleteName={controller.pendingDeleteName}
         pendingProjectDeleteId={controller.pendingProjectDeleteId}
         pendingProjectDeleteName={controller.pendingProjectDeleteName}
@@ -154,7 +158,9 @@ function AppContent() {
             machineName={controller.route.selectedComputeMachineName}
             loading={controller.computeLoading}
             projectId={controller.activeProjectId}
+            deletingMachineName={controller.deletingMachineName}
             onBack={() => navigate("/compute")}
+            onDeleteMachine={controller.requestDeleteMachine}
           />
         ) : visibleSection === "compute-create" ? (
           <ComputeCreateSection
@@ -170,7 +176,7 @@ function AppContent() {
             deletingMachineName={controller.deletingMachineName}
             loading={controller.computeLoading}
             machines={controller.computeMachines}
-            onDeleteMachine={controller.confirmDeleteMachine}
+            onDeleteMachine={controller.requestDeleteMachine}
             onOpenCreate={() => navigate("/compute/new")}
           />
         ) : visibleSection === "deploy" ? (
