@@ -43,7 +43,8 @@ type IdentityServer = identitypb.IdentityServiceServer
 
 type identityServer struct {
 	identitypb.UnimplementedIdentityServiceServer
-	db *sql.DB
+	db     *sql.DB
+	logger *slog.Logger
 }
 
 type userRecord struct {
@@ -56,12 +57,12 @@ type userRecord struct {
 	UpdatedAt    string
 }
 
-func newIdentityServer() (*identityServer, error) {
+func newIdentityServer(logger *slog.Logger) (*identityServer, error) {
 	database, err := db.Open()
 	if err != nil {
 		return nil, err
 	}
-	return &identityServer{db: database}, nil
+	return &identityServer{db: database, logger: logger}, nil
 }
 
 func (s *identityServer) Close() error {
@@ -119,6 +120,7 @@ func (s *identityServer) Register(ctx context.Context, req *RegisterRequest) (*R
 	}
 	session, err := createSession(ctx, tx, created.ID)
 	if err != nil {
+		s.logger.Error("createSession failed", "error", err)
 		return nil, status.Error(codes.Internal, "failed to create session")
 	}
 	if err := tx.Commit(); err != nil {
@@ -150,6 +152,7 @@ func (s *identityServer) Login(ctx context.Context, req *LoginRequest) (*LoginRe
 	defer func() { _ = tx.Rollback() }()
 	session, err := createSession(ctx, tx, user.ID)
 	if err != nil {
+		s.logger.Error("createSession failed", "error", err)
 		return nil, status.Error(codes.Internal, "failed to create session")
 	}
 	if err := tx.Commit(); err != nil {
@@ -324,7 +327,7 @@ func main() {
 		logger.Error("failed to listen", "addr", addr, "error", err)
 		os.Exit(1)
 	}
-	server, err := newIdentityServer()
+	server, err := newIdentityServer(logger)
 	if err != nil {
 		logger.Error("failed to open database", "error", err)
 		os.Exit(1)

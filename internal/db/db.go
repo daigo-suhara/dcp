@@ -65,11 +65,17 @@ func initSchema(databaseURL string) error {
 
 func ensureSchema(db *sql.DB) error {
 	var ready bool
-	if err := db.QueryRow("SELECT to_regclass('public.identity_sessions') IS NOT NULL").Scan(&ready); err != nil {
+	if err := db.QueryRow(`
+SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name   = 'identity_sessions'
+      AND column_name  = 'expires_at'
+)`).Scan(&ready); err != nil {
 		return err
 	}
 	if !ready {
-		return errors.New("database schema is not ready")
+		return errors.New("database schema is not ready: identity_sessions.expires_at missing")
 	}
 	return nil
 }
