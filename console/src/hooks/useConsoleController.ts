@@ -639,6 +639,9 @@ export function useConsoleController() {
         throw new Error(getApiErrorMessage(data, "仮想マシンの削除に失敗しました"));
       }
       setMessage(`${name} を削除しました`);
+      if (route.selectedComputeMachineName === name) {
+        navigate("/compute");
+      }
       await loadComputeMachines();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "仮想マシンの削除に失敗しました");
