@@ -5,7 +5,6 @@ import { Alert, Box, Button, Card, CardContent, Paper, TextField, Typography } f
 import { useEffect, useState, type FormEvent } from "react";
 import { SiCentos, SiDebian, SiFedora, SiUbuntu } from "react-icons/si";
 import type { ComputeForm } from "../types";
-import { actionLinkButtonSx } from "../theme";
 
 function isDnsLabel(value: string) {
   return /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(value) && value.length <= 63;
@@ -69,13 +68,13 @@ export function ComputeCreateSection({ error, form, onBack, onChange, onSubmit, 
 
   return (
     <Box sx={{ display: "grid", gap: 3 }}>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-        <Button type="button" variant="text" size="small" startIcon={<ArrowBackIcon fontSize="small" />} onClick={onBack} sx={actionLinkButtonSx}>
-          一覧へ戻る
-        </Button>
+      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
         <Typography variant="h5" sx={{ fontWeight: 800 }}>
           仮想マシンを作成
         </Typography>
+        <Button startIcon={<ArrowBackIcon />} onClick={onBack} variant="outlined">
+          一覧に戻る
+        </Button>
       </Box>
 
       <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", xl: "minmax(0, 1.15fr) minmax(0, 0.85fr)" }, alignItems: "start" }}>
