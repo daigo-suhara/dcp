@@ -41,6 +41,7 @@ api:
   image:
     repository: api
   service:
+    type: ClusterIP
     port: 8000
 
 project:

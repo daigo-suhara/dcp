@@ -54,6 +54,10 @@ metadata:
     {{- include "dcloud.labels" . | nindent 4 }}
     app.kubernetes.io/component: api
 spec:
+  type: {{ .Values.api.service.type | default "ClusterIP" }}
+  {{- if .Values.api.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.api.service.loadBalancerIP }}
+  {{- end }}
   ports:
     - name: http
       port: {{ .Values.api.service.port }}
