@@ -203,6 +203,15 @@ def create_project(body: dict[str, Any], request: Request) -> dict[str, Any]:
 def delete_project(project_id: str, request: Request) -> dict[str, str]:
     user = current_user(request)
     try:
+        machines = app.state.compute_client.list_machines(user["id"], project_id)
+        for machine in machines.get("machines", []):
+            try:
+                app.state.compute_client.delete_machine(user["id"], project_id, machine["name"])
+            except Exception:
+                pass
+    except Exception:
+        pass
+    try:
         deleted = app.state.repo.delete_project(user["id"], project_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
