@@ -49,6 +49,14 @@ CREATE TABLE IF NOT EXISTS identity_users (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS operations (
+    id TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    error TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS identity_sessions (
     token_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES identity_users(id) ON DELETE CASCADE,

@@ -607,10 +607,12 @@ export function useConsoleController() {
         credentials: "include",
         headers: apiHeaders()
       });
-      if (!response.ok && response.status !== 204) {
+      if (!response.ok) {
         const data = (await readJsonResponse(response)) as ApiErrorResponse;
         throw new Error(getApiErrorMessage(data, "サービスの削除に失敗しました"));
       }
+      const { operationId } = await response.json() as { operationId: string };
+      await pollOperation(operationId);
       setMessage(`${name} を削除しました`);
       if (route.selectedServiceName === name) {
         navigate("/container");
@@ -621,6 +623,21 @@ export function useConsoleController() {
     } finally {
       setDeletingName("");
     }
+  }
+
+  async function pollOperation(operationId: string): Promise<void> {
+    for (let i = 0; i < 60; i++) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const res = await fetch(`/api/v1/operations/${operationId}`, {
+        credentials: "include",
+        headers: apiHeaders()
+      });
+      if (!res.ok) throw new Error("オペレーションの取得に失敗しました");
+      const op = await res.json() as { status: string; error: string };
+      if (op.status === "done") return;
+      if (op.status === "error") throw new Error(op.error || "削除に失敗しました");
+    }
+    throw new Error("削除がタイムアウトしました");
   }
 
   async function confirmDeleteMachine(name: string) {

@@ -39,6 +39,11 @@ class ContainerClient:
             request_serializer=container_pb2.DeleteServiceRequest.SerializeToString,
             response_deserializer=container_pb2.DeleteServiceResponse.FromString,
         )
+        self._get_operation = channel.unary_unary(
+            "/dcloud.container.v1.ContainerService/GetOperation",
+            request_serializer=container_pb2.GetOperationRequest.SerializeToString,
+            response_deserializer=container_pb2.GetOperationResponse.FromString,
+        )
 
     @classmethod
     def new(cls) -> "ContainerClient":
@@ -84,15 +89,25 @@ class ContainerClient:
             raise self._map_error(error) from error
         return self._service_to_dict(response.service)
 
-    def delete_service(self, user_id: str, project_id: str, name: str) -> None:
+    def delete_service(self, user_id: str, project_id: str, name: str) -> str:
         try:
-            self._delete_service(
+            response = self._delete_service(
                 container_pb2.DeleteServiceRequest(
                     user_id=user_id,
                     project_id=project_id,
                     name=name,
                 )
             )
+            return response.operation_id
+        except grpc.RpcError as error:
+            raise self._map_error(error) from error
+
+    def get_operation(self, operation_id: str) -> dict[str, Any]:
+        try:
+            response = self._get_operation(
+                container_pb2.GetOperationRequest(operation_id=operation_id)
+            )
+            return {"operationId": response.operation_id, "status": response.status, "error": response.error}
         except grpc.RpcError as error:
             raise self._map_error(error) from error
 

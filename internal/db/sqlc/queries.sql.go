@@ -10,6 +10,30 @@ import (
 	"database/sql"
 )
 
+const createOperation = `-- name: CreateOperation :one
+INSERT INTO operations (id, status, created_at, updated_at)
+VALUES ($1, 'pending', $2, $2)
+RETURNING id, status, error, created_at, updated_at
+`
+
+type CreateOperationParams struct {
+	ID        string
+	CreatedAt string
+}
+
+func (q *Queries) CreateOperation(ctx context.Context, arg CreateOperationParams) (Operation, error) {
+	row := q.db.QueryRowContext(ctx, createOperation, arg.ID, arg.CreatedAt)
+	var i Operation
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Error,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (id, user_id, name, created_at)
 VALUES ($1, $2, $3, $4)
@@ -75,6 +99,25 @@ func (q *Queries) DeleteProject(ctx context.Context, arg DeleteProjectParams) (i
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const getOperation = `-- name: GetOperation :one
+SELECT id, status, error, created_at, updated_at
+FROM operations
+WHERE id = $1
+`
+
+func (q *Queries) GetOperation(ctx context.Context, id string) (Operation, error) {
+	row := q.db.QueryRowContext(ctx, getOperation, id)
+	var i Operation
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.Error,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const listContainers = `-- name: ListContainers :many
@@ -171,6 +214,29 @@ func (q *Queries) ProjectExists(ctx context.Context, arg ProjectExistsParams) (b
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const updateOperation = `-- name: UpdateOperation :exec
+UPDATE operations
+SET status = $2, error = $3, updated_at = $4
+WHERE id = $1
+`
+
+type UpdateOperationParams struct {
+	ID        string
+	Status    string
+	Error     sql.NullString
+	UpdatedAt string
+}
+
+func (q *Queries) UpdateOperation(ctx context.Context, arg UpdateOperationParams) error {
+	_, err := q.db.ExecContext(ctx, updateOperation,
+		arg.ID,
+		arg.Status,
+		arg.Error,
+		arg.UpdatedAt,
+	)
+	return err
 }
 
 const upsertContainer = `-- name: UpsertContainer :one

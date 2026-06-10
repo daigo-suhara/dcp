@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"log/slog"
 	"net"
@@ -30,7 +32,17 @@ type DeployServiceRequest = containerpb.DeployServiceRequest
 type DeployServiceResponse = containerpb.DeployServiceResponse
 type DeleteServiceRequest = containerpb.DeleteServiceRequest
 type DeleteServiceResponse = containerpb.DeleteServiceResponse
+type GetOperationRequest = containerpb.GetOperationRequest
+type GetOperationResponse = containerpb.GetOperationResponse
 type ContainerServer = containerpb.ContainerServiceServer
+
+func newOperationID() (string, error) {
+	buf := make([]byte, 8)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return "op-" + hex.EncodeToString(buf), nil
+}
 
 type projectScope struct {
 	UserID    string
@@ -207,15 +219,51 @@ func (s *containerServer) DeleteService(ctx context.Context, req *DeleteServiceR
 	if !exists {
 		return nil, status.Error(codes.NotFound, "project not found")
 	}
-	if err := s.knative.delete(ctx, projectScope{UserID: userID, ProjectID: projectID}, name); err != nil {
-		return nil, status.Error(codes.Internal, "failed to delete service")
-	}
-	rowsAffected, err := s.q.DeleteContainer(ctx, dbsqlc.DeleteContainerParams{ProjectID: projectID, Name: name})
+	opID, err := newOperationID()
 	if err != nil {
-		return nil, status.Error(codes.Internal, "failed to delete service")
+		return nil, status.Error(codes.Internal, "failed to create operation")
 	}
-	_ = rowsAffected
-	return &DeleteServiceResponse{}, nil
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if _, err := s.q.CreateOperation(ctx, dbsqlc.CreateOperationParams{ID: opID, CreatedAt: now}); err != nil {
+		return nil, status.Error(codes.Internal, "failed to create operation")
+	}
+	go func() {
+		bgCtx := context.Background()
+		errMsg := sql.NullString{}
+		newStatus := "done"
+		if err := s.knative.delete(bgCtx, projectScope{UserID: userID, ProjectID: projectID}, name); err != nil {
+			newStatus = "error"
+			errMsg = sql.NullString{String: err.Error(), Valid: true}
+		} else {
+			_, _ = s.q.DeleteContainer(bgCtx, dbsqlc.DeleteContainerParams{ProjectID: projectID, Name: name})
+		}
+		_ = s.q.UpdateOperation(bgCtx, dbsqlc.UpdateOperationParams{
+			ID:        opID,
+			Status:    newStatus,
+			Error:     errMsg,
+			UpdatedAt: time.Now().UTC().Format(time.RFC3339Nano),
+		})
+	}()
+	return &DeleteServiceResponse{OperationId: opID}, nil
+}
+
+func (s *containerServer) GetOperation(ctx context.Context, req *GetOperationRequest) (*GetOperationResponse, error) {
+	opID := strings.TrimSpace(req.OperationId)
+	if opID == "" {
+		return nil, status.Error(codes.InvalidArgument, "operationId is required")
+	}
+	op, err := s.q.GetOperation(ctx, opID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, status.Error(codes.NotFound, "operation not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to get operation")
+	}
+	errStr := ""
+	if op.Error.Valid {
+		errStr = op.Error.String
+	}
+	return &GetOperationResponse{OperationId: op.ID, Status: op.Status, Error: errStr}, nil
 }
 
 func RegisterContainerServer(server *grpc.Server, impl ContainerServer) {

@@ -23,6 +23,7 @@ const (
 	ContainerService_ListServices_FullMethodName  = "/dcloud.container.v1.ContainerService/ListServices"
 	ContainerService_DeployService_FullMethodName = "/dcloud.container.v1.ContainerService/DeployService"
 	ContainerService_DeleteService_FullMethodName = "/dcloud.container.v1.ContainerService/DeleteService"
+	ContainerService_GetOperation_FullMethodName  = "/dcloud.container.v1.ContainerService/GetOperation"
 )
 
 // ContainerServiceClient is the client API for ContainerService service.
@@ -33,6 +34,7 @@ type ContainerServiceClient interface {
 	ListServices(ctx context.Context, in *ListServicesRequest, opts ...grpc.CallOption) (*ListServicesResponse, error)
 	DeployService(ctx context.Context, in *DeployServiceRequest, opts ...grpc.CallOption) (*DeployServiceResponse, error)
 	DeleteService(ctx context.Context, in *DeleteServiceRequest, opts ...grpc.CallOption) (*DeleteServiceResponse, error)
+	GetOperation(ctx context.Context, in *GetOperationRequest, opts ...grpc.CallOption) (*GetOperationResponse, error)
 }
 
 type containerServiceClient struct {
@@ -83,6 +85,16 @@ func (c *containerServiceClient) DeleteService(ctx context.Context, in *DeleteSe
 	return out, nil
 }
 
+func (c *containerServiceClient) GetOperation(ctx context.Context, in *GetOperationRequest, opts ...grpc.CallOption) (*GetOperationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOperationResponse)
+	err := c.cc.Invoke(ctx, ContainerService_GetOperation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ContainerServiceServer is the server API for ContainerService service.
 // All implementations must embed UnimplementedContainerServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type ContainerServiceServer interface {
 	ListServices(context.Context, *ListServicesRequest) (*ListServicesResponse, error)
 	DeployService(context.Context, *DeployServiceRequest) (*DeployServiceResponse, error)
 	DeleteService(context.Context, *DeleteServiceRequest) (*DeleteServiceResponse, error)
+	GetOperation(context.Context, *GetOperationRequest) (*GetOperationResponse, error)
 	mustEmbedUnimplementedContainerServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedContainerServiceServer) DeployService(context.Context, *Deplo
 }
 func (UnimplementedContainerServiceServer) DeleteService(context.Context, *DeleteServiceRequest) (*DeleteServiceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteService not implemented")
+}
+func (UnimplementedContainerServiceServer) GetOperation(context.Context, *GetOperationRequest) (*GetOperationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOperation not implemented")
 }
 func (UnimplementedContainerServiceServer) mustEmbedUnimplementedContainerServiceServer() {}
 func (UnimplementedContainerServiceServer) testEmbeddedByValue()                          {}
@@ -206,6 +222,24 @@ func _ContainerService_DeleteService_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ContainerService_GetOperation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOperationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ContainerServiceServer).GetOperation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ContainerService_GetOperation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ContainerServiceServer).GetOperation(ctx, req.(*GetOperationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ContainerService_ServiceDesc is the grpc.ServiceDesc for ContainerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var ContainerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteService",
 			Handler:    _ContainerService_DeleteService_Handler,
+		},
+		{
+			MethodName: "GetOperation",
+			Handler:    _ContainerService_GetOperation_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

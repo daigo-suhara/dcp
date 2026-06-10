@@ -313,14 +313,25 @@ def delete_container(
     if not project_id:
         raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
     try:
-        app.state.container_client.delete_service(user["id"], project_id, name)
+        operation_id = app.state.container_client.delete_service(user["id"], project_id, name)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="サービスが見つかりません") from exc
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
-    return {"status": "deleted"}
+    return {"status": "deleting", "operationId": operation_id}
+
+
+@app.get("/api/v1/operations/{operation_id}")
+def get_operation(operation_id: str, request: Request) -> dict[str, str]:
+    current_user(request)
+    try:
+        return app.state.container_client.get_operation(operation_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="オペレーションが見つかりません") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/compute")

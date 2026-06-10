@@ -21,9 +21,45 @@ type Container struct {
 	Generation int64
 }
 
+type IdentitySession struct {
+	TokenHash string
+	UserID    string
+	CreatedAt string
+	UpdatedAt string
+	ExpiresAt string
+}
+
+type IdentityUser struct {
+	ID           string
+	Username     string
+	PasswordHash string
+	Email        sql.NullString
+	Name         sql.NullString
+	CreatedAt    string
+	UpdatedAt    string
+}
+
+type Operation struct {
+	ID        string
+	Status    string
+	Error     sql.NullString
+	CreatedAt string
+	UpdatedAt string
+}
+
 type Project struct {
 	ID        string
 	UserID    string
 	Name      string
 	CreatedAt string
+}
+
+type ProjectRepository struct {
+	ProjectID        string
+	UserID           string
+	RepositoryOwner  string
+	RepositoryName   string
+	RepositoryBranch string
+	ConnectedAt      string
+	UpdatedAt        string
 }
