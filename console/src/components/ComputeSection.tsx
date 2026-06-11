@@ -53,8 +53,11 @@ export function ComputeSection({ loading, deletingMachineName, machines, onDelet
             <Box sx={{ borderTop: "1px solid rgba(148, 163, 184, 0.18)" }}>
               {machines.length > 0 ? (
                 machines.map((machine) => {
+                  const isDeleting = deletingMachineName === machine.name;
                   const isReady = machine.ready;
-                  const statusIcon = isReady ? <CheckCircleIcon fontSize="small" /> : <CircularProgress size={14} thickness={5.5} sx={{ color: "inherit" }} />;
+                  const statusIcon = isDeleting || !isReady ? <CircularProgress size={14} thickness={5.5} sx={{ color: "inherit" }} /> : <CheckCircleIcon fontSize="small" />;
+                  const statusBgColor = isDeleting ? alpha("#dc2626", 0.12) : isReady ? "transparent" : alpha("#2563eb", 0.12);
+                  const statusTextColor = isDeleting ? "error.main" : isReady ? "success.main" : "primary.main";
 
                   return (
                     <Paper
@@ -81,8 +84,8 @@ export function ComputeSection({ loading, deletingMachineName, machines, onDelet
                             display: "grid",
                             placeItems: "center",
                             borderRadius: "999px",
-                            bgcolor: isReady ? "transparent" : alpha("#2563eb", 0.12),
-                            color: isReady ? "success.main" : "primary.main"
+                            bgcolor: statusBgColor,
+                            color: statusTextColor
                           }}
                         >
                           {statusIcon}
@@ -139,7 +142,7 @@ export function ComputeSection({ loading, deletingMachineName, machines, onDelet
                                 }
                               }}
                             >
-                              {deletingMachineName === machine.name ? <CircularProgress size={14} thickness={5} sx={{ color: "inherit" }} /> : <DeleteOutlinedIcon fontSize="small" />}
+                              <DeleteOutlinedIcon fontSize="small" />
                             </IconButton>
                           </span>
                         </Tooltip>
