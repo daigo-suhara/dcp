@@ -162,15 +162,17 @@ export function ContainerSection({
                     containers.map((service) => {
                       const isDeleting = deletingServiceName === service.name;
                       const status = getServiceStatus(service);
-                      const statusIcon = isDeleting || status === "loading" ? (
+                      const statusIcon = isDeleting ? (
                         <CircularProgress size={14} thickness={5.5} sx={{ color: "inherit" }} />
                       ) : status === "ready" ? (
                         <CheckCircleIcon fontSize="small" />
+                      ) : status === "loading" ? (
+                        <CircularProgress size={14} thickness={5.5} sx={{ color: "inherit" }} />
                       ) : (
                         <ErrorOutlinedIcon fontSize="small" />
                       );
-                      const statusColor = isDeleting || status === "loading" ? alpha("#2563eb", 0.12) : status === "ready" ? "transparent" : alpha("#dc2626", 0.12);
-                      const statusTextColor = isDeleting || status === "loading" ? "primary.main" : status === "ready" ? "success.main" : "error.main";
+                      const statusColor = isDeleting ? alpha("#dc2626", 0.12) : status === "ready" ? "transparent" : status === "loading" ? alpha("#2563eb", 0.12) : alpha("#dc2626", 0.12);
+                      const statusTextColor = isDeleting ? "error.main" : status === "ready" ? "success.main" : status === "loading" ? "primary.main" : "error.main";
                       return (
                         <Paper
                           key={service.name}
