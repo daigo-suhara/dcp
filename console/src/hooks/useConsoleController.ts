@@ -681,10 +681,12 @@ export function useConsoleController() {
         credentials: "include",
         headers: apiHeaders()
       });
-      if (!response.ok && response.status !== 204) {
+      if (!response.ok) {
         const data = (await readJsonResponse(response)) as ApiErrorResponse;
         throw new Error(getApiErrorMessage(data, "プロジェクトの削除に失敗しました"));
       }
+      const { operationId } = await response.json() as { operationId: string };
+      await pollOperation(operationId);
       setMessage("プロジェクトを削除しました");
       if (activeProjectId === projectId) {
         localStorage.removeItem(projectStorageKey(currentUser!.id));

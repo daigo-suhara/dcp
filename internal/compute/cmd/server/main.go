@@ -286,7 +286,7 @@ func (s *computeServer) GetOperation(ctx context.Context, req *GetOperationReque
 	return &GetOperationResponse{OperationId: op.ID, Status: op.Status, Error: errStr}, nil
 }
 
-func (s *computeServer) reconcileVMDeletions(ctx context.Context) {
+func (s *computeServer) reconcileDeletions(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -294,33 +294,47 @@ func (s *computeServer) reconcileVMDeletions(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			ops, err := s.q.ListPendingOperationsByResourceType(ctx, sql.NullString{String: "vm", Valid: true})
-			if err != nil || len(ops) == 0 {
-				continue
-			}
-			for _, op := range ops {
+			s.reconcileResourceType(ctx, "vm", func(op dbsqlc.Operation) bool {
 				if !op.UserID.Valid || !op.ProjectID.Valid || !op.ResourceName.Valid {
-					continue
+					return false
 				}
 				records, err := s.kubevirt.list(ctx, s.namespace, op.UserID.String, op.ProjectID.String)
 				if err != nil {
-					continue
+					return false
 				}
-				found := false
 				for _, r := range records {
 					if r.Name == op.ResourceName.String {
-						found = true
-						break
+						return false
 					}
 				}
-				if !found {
-					_ = s.q.UpdateOperation(ctx, dbsqlc.UpdateOperationParams{
-						ID:        op.ID,
-						Status:    "done",
-						UpdatedAt: time.Now().UTC().Format(time.RFC3339Nano),
-					})
+				return true
+			})
+			s.reconcileResourceType(ctx, "project", func(op dbsqlc.Operation) bool {
+				if !op.UserID.Valid || !op.ProjectID.Valid {
+					return false
 				}
-			}
+				records, err := s.kubevirt.list(ctx, s.namespace, op.UserID.String, op.ProjectID.String)
+				if err != nil {
+					return false
+				}
+				return len(records) == 0
+			})
+		}
+	}
+}
+
+func (s *computeServer) reconcileResourceType(ctx context.Context, resourceType string, isDone func(dbsqlc.Operation) bool) {
+	ops, err := s.q.ListPendingOperationsByResourceType(ctx, sql.NullString{String: resourceType, Valid: true})
+	if err != nil || len(ops) == 0 {
+		return
+	}
+	for _, op := range ops {
+		if isDone(op) {
+			_ = s.q.UpdateOperation(ctx, dbsqlc.UpdateOperationParams{
+				ID:        op.ID,
+				Status:    "done",
+				UpdatedAt: time.Now().UTC().Format(time.RFC3339Nano),
+			})
 		}
 	}
 }
@@ -353,7 +367,7 @@ func main() {
 	}()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	go server.reconcileVMDeletions(ctx)
+	go server.reconcileDeletions(ctx)
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	select {

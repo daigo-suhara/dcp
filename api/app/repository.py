@@ -224,3 +224,11 @@ class Repository:
                 (normalized_user, normalized_project),
             )
             return cur.rowcount > 0
+
+    def create_operation(self, op_id: str, resource_type: str, resource_name: str, user_id: str, project_id: str) -> None:
+        ts = now()
+        with self.lock, self._connect() as conn, conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO operations (id, status, resource_type, resource_name, user_id, project_id, created_at, updated_at) VALUES (%s, 'pending', %s, %s, %s, %s, %s, %s)",
+                (op_id, resource_type, resource_name, user_id, project_id, ts, ts),
+            )

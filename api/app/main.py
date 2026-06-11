@@ -201,6 +201,7 @@ def create_project(body: dict[str, Any], request: Request) -> dict[str, Any]:
 
 @app.delete("/api/v1/projects/{project_id}")
 def delete_project(project_id: str, request: Request) -> dict[str, str]:
+    import secrets
     user = current_user(request)
     try:
         machines = app.state.compute_client.list_machines(user["id"], project_id)
@@ -212,12 +213,26 @@ def delete_project(project_id: str, request: Request) -> dict[str, str]:
     except Exception:
         pass
     try:
+        services = app.state.container_client.list_services(user["id"], project_id)
+        for container in services.get("containers", []):
+            try:
+                app.state.container_client.delete_service(user["id"], project_id, container["name"])
+            except Exception:
+                pass
+    except Exception:
+        pass
+    op_id = "project-op-" + secrets.token_hex(8)
+    try:
+        app.state.repo.create_operation(op_id, "project", project_id, user["id"], project_id)
+    except Exception:
+        pass
+    try:
         deleted = app.state.repo.delete_project(user["id"], project_id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not deleted:
         raise HTTPException(status_code=404, detail="プロジェクトが見つかりません")
-    return {"status": "deleted"}
+    return {"status": "deleting", "operationId": op_id}
 
 
 @app.get("/api/v1/projects/{project_id}/repository")
@@ -328,7 +343,7 @@ def get_operation(operation_id: str, request: Request) -> dict[str, str]:
     current_user(request)
     if operation_id.startswith("container-op-"):
         client = app.state.container_client
-    elif operation_id.startswith("compute-op-"):
+    elif operation_id.startswith("compute-op-") or operation_id.startswith("project-op-"):
         client = app.state.compute_client
     else:
         raise HTTPException(status_code=404, detail="オペレーションが見つかりません")
