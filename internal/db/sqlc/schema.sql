@@ -64,6 +64,11 @@ CREATE TABLE IF NOT EXISTS operations (
 CREATE INDEX IF NOT EXISTS idx_operations_status_resource_type
     ON operations (status, resource_type);
 
+ALTER TABLE operations ADD COLUMN IF NOT EXISTS resource_type TEXT;
+ALTER TABLE operations ADD COLUMN IF NOT EXISTS resource_name TEXT;
+ALTER TABLE operations ADD COLUMN IF NOT EXISTS user_id TEXT;
+ALTER TABLE operations ADD COLUMN IF NOT EXISTS project_id TEXT;
+
 CREATE TABLE IF NOT EXISTS identity_sessions (
     token_hash TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES identity_users(id) ON DELETE CASCADE,
