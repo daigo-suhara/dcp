@@ -53,21 +53,17 @@ CREATE TABLE IF NOT EXISTS operations (
     id TEXT PRIMARY KEY,
     status TEXT NOT NULL,
     error TEXT,
-    resource_type TEXT,
-    resource_name TEXT,
-    user_id TEXT,
-    project_id TEXT,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
-
-CREATE INDEX IF NOT EXISTS idx_operations_status_resource_type
-    ON operations (status, resource_type);
 
 ALTER TABLE operations ADD COLUMN IF NOT EXISTS resource_type TEXT;
 ALTER TABLE operations ADD COLUMN IF NOT EXISTS resource_name TEXT;
 ALTER TABLE operations ADD COLUMN IF NOT EXISTS user_id TEXT;
 ALTER TABLE operations ADD COLUMN IF NOT EXISTS project_id TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_operations_status_resource_type
+    ON operations (status, resource_type);
 
 CREATE TABLE IF NOT EXISTS identity_sessions (
     token_hash TEXT PRIMARY KEY,
