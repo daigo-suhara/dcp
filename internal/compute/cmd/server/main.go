@@ -51,7 +51,7 @@ func newOperationID() (string, error) {
 	if _, err := rand.Read(buf); err != nil {
 		return "", err
 	}
-	return "op-" + hex.EncodeToString(buf), nil
+	return "compute-op-" + hex.EncodeToString(buf), nil
 }
 
 type projectScope struct {

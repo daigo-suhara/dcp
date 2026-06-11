@@ -326,14 +326,18 @@ def delete_container(
 @app.get("/api/v1/operations/{operation_id}")
 def get_operation(operation_id: str, request: Request) -> dict[str, str]:
     current_user(request)
-    for client in [app.state.container_client, app.state.compute_client]:
-        try:
-            return client.get_operation(operation_id)
-        except KeyError:
-            continue
-        except RuntimeError as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
-    raise HTTPException(status_code=404, detail="オペレーションが見つかりません")
+    if operation_id.startswith("container-op-"):
+        client = app.state.container_client
+    elif operation_id.startswith("compute-op-"):
+        client = app.state.compute_client
+    else:
+        raise HTTPException(status_code=404, detail="オペレーションが見つかりません")
+    try:
+        return client.get_operation(operation_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="オペレーションが見つかりません") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @app.get("/api/v1/compute")
