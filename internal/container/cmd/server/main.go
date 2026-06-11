@@ -142,9 +142,9 @@ func (s *containerServer) ListServices(ctx context.Context, req *ListServicesReq
 		url := record.URL
 		domainStatus := ""
 		domainStatusReason := ""
+		defaultMapping := serviceResourceName(projectID, record.Name) + "." + s.knative.publicDomain
 		if cd != "" {
 			url = s.knative.customURL(cd)
-			defaultMapping := serviceResourceName(projectID, record.Name) + "." + s.knative.publicDomain
 			domainStatus, domainStatusReason = s.knative.getDomainMappingStatus(ctx, cd, defaultMapping)
 		}
 		items = append(items, &Service{
@@ -161,6 +161,7 @@ func (s *containerServer) ListServices(ctx context.Context, req *ListServicesReq
 			CustomDomain:       cd,
 			DomainStatus:       domainStatus,
 			DomainStatusReason: domainStatusReason,
+			DomainCnameTarget:  defaultMapping,
 		})
 	}
 	return &ListServicesResponse{UserId: userID, ProjectId: projectID, Namespace: s.namespace, Containers: items}, nil
@@ -350,9 +351,9 @@ func (s *containerServer) SetServiceDomain(ctx context.Context, req *SetServiceD
 	url := s.knative.publicURL(serviceResourceName(projectID, name))
 	domainStatus := ""
 	domainStatusReason := ""
+	defaultMapping := serviceResourceName(projectID, name) + "." + s.knative.publicDomain
 	if customDomain != "" {
 		url = s.knative.customURL(customDomain)
-		defaultMapping := serviceResourceName(projectID, name) + "." + s.knative.publicDomain
 		domainStatus, domainStatusReason = s.knative.getDomainMappingStatus(ctx, customDomain, defaultMapping)
 	}
 	svc := &Service{
@@ -369,6 +370,7 @@ func (s *containerServer) SetServiceDomain(ctx context.Context, req *SetServiceD
 		CustomDomain:       customDomain,
 		DomainStatus:       domainStatus,
 		DomainStatusReason: domainStatusReason,
+		DomainCnameTarget:  defaultMapping,
 	}
 	return &SetServiceDomainResponse{Service: svc}, nil
 }

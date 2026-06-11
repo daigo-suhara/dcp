@@ -146,6 +146,7 @@ class ContainerClient:
             "customDomain": service.custom_domain or None,
             "domainStatus": service.domain_status or None,
             "domainStatusReason": service.domain_status_reason or None,
+            "domainCnameTarget": service.domain_cname_target or None,
         }
 
     @staticmethod

@@ -51,6 +51,7 @@ export type DeployedService = {
   customDomain?: string | null;
   domainStatus?: "ready" | "pending" | "error" | null;
   domainStatusReason?: string | null;
+  domainCnameTarget?: string | null;
 };
 
 export type ComputeMachine = {

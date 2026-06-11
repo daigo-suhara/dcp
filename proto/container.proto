@@ -37,6 +37,7 @@ message Service {
   string custom_domain = 11;
   string domain_status = 12;
   string domain_status_reason = 13;
+  string domain_cname_target = 14;
 }
 
 message ListServicesRequest {

@@ -167,9 +167,9 @@ export function ContainerSection({
                         <Chip label="エラー" color="error" size="small" icon={<ErrorOutlinedIcon />} sx={{ width: "fit-content" }} />
                       </Tooltip>
                     )}
-                    {selectedService.domainStatus === "pending" && (
+                    {selectedService.domainStatus === "pending" && selectedService.domainCnameTarget && (
                       <Typography variant="caption" color="text.secondary">
-                        ドメインの CNAME レコードを <Box component="code" sx={{ bgcolor: "grey.100", px: 0.5, borderRadius: 0.5 }}>{selectedService.name}.{window.location.hostname.replace(/^[^.]+\./, "")}</Box> に向けてください
+                        CNAME レコードを <Box component="code" sx={{ bgcolor: "grey.100", px: 0.5, borderRadius: 0.5 }}>{selectedService.domainCnameTarget}</Box> に向けてください
                       </Typography>
                     )}
                   </Paper>
