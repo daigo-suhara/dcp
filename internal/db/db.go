@@ -43,7 +43,17 @@ func Migrate(databaseURL string) error {
 	if databaseURL == "" {
 		return errors.New("database URL is required")
 	}
-	return initSchema(databaseURL)
+	return initSchema(withReadWrite(databaseURL))
+}
+
+func withReadWrite(databaseURL string) string {
+	if strings.Contains(databaseURL, "target_session_attrs") {
+		return databaseURL
+	}
+	if strings.Contains(databaseURL, "?") {
+		return databaseURL + "&target_session_attrs=read-write"
+	}
+	return databaseURL + "?target_session_attrs=read-write"
 }
 
 func initSchema(databaseURL string) error {
