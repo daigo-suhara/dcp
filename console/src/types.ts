@@ -48,6 +48,7 @@ export type DeployedService = {
   namespace: string;
   projectId?: string;
   generation?: number;
+  customDomain?: string | null;
 };
 
 export type ComputeMachine = {

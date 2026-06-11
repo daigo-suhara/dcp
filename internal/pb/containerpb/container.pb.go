@@ -165,6 +165,7 @@ type Service struct {
 	Namespace     string                 `protobuf:"bytes,8,opt,name=namespace,proto3" json:"namespace,omitempty"`
 	ProjectId     string                 `protobuf:"bytes,9,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
 	Generation    int64                  `protobuf:"varint,10,opt,name=generation,proto3" json:"generation,omitempty"`
+	CustomDomain  string                 `protobuf:"bytes,11,opt,name=custom_domain,json=customDomain,proto3" json:"custom_domain,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -267,6 +268,13 @@ func (x *Service) GetGeneration() int64 {
 		return x.Generation
 	}
 	return 0
+}
+
+func (x *Service) GetCustomDomain() string {
+	if x != nil {
+		return x.CustomDomain
+	}
+	return ""
 }
 
 type ListServicesRequest struct {
@@ -733,6 +741,118 @@ func (x *GetOperationResponse) GetError() string {
 	return ""
 }
 
+type SetServiceDomainRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ProjectId     string                 `protobuf:"bytes,2,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	CustomDomain  string                 `protobuf:"bytes,4,opt,name=custom_domain,json=customDomain,proto3" json:"custom_domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetServiceDomainRequest) Reset() {
+	*x = SetServiceDomainRequest{}
+	mi := &file_container_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetServiceDomainRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetServiceDomainRequest) ProtoMessage() {}
+
+func (x *SetServiceDomainRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_container_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetServiceDomainRequest.ProtoReflect.Descriptor instead.
+func (*SetServiceDomainRequest) Descriptor() ([]byte, []int) {
+	return file_container_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SetServiceDomainRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *SetServiceDomainRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *SetServiceDomainRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SetServiceDomainRequest) GetCustomDomain() string {
+	if x != nil {
+		return x.CustomDomain
+	}
+	return ""
+}
+
+type SetServiceDomainResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Service       *Service               `protobuf:"bytes,1,opt,name=service,proto3" json:"service,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetServiceDomainResponse) Reset() {
+	*x = SetServiceDomainResponse{}
+	mi := &file_container_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetServiceDomainResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetServiceDomainResponse) ProtoMessage() {}
+
+func (x *SetServiceDomainResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_container_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetServiceDomainResponse.ProtoReflect.Descriptor instead.
+func (*SetServiceDomainResponse) Descriptor() ([]byte, []int) {
+	return file_container_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *SetServiceDomainResponse) GetService() *Service {
+	if x != nil {
+		return x.Service
+	}
+	return nil
+}
+
 var File_container_proto protoreflect.FileDescriptor
 
 const file_container_proto_rawDesc = "" +
@@ -743,7 +863,7 @@ const file_container_proto_rawDesc = "" +
 	"\x0eHealthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
 	"\aservice\x18\x02 \x01(\tR\aservice\x12\x1c\n" +
-	"\ttimestamp\x18\x03 \x01(\tR\ttimestamp\"\x8e\x02\n" +
+	"\ttimestamp\x18\x03 \x01(\tR\ttimestamp\"\xb3\x02\n" +
 	"\aService\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x10\n" +
@@ -760,7 +880,8 @@ const file_container_proto_rawDesc = "" +
 	"\n" +
 	"generation\x18\n" +
 	" \x01(\x03R\n" +
-	"generation\"M\n" +
+	"generation\x12#\n" +
+	"\rcustom_domain\x18\v \x01(\tR\fcustomDomain\"M\n" +
 	"\x13ListServicesRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
 	"\n" +
@@ -796,13 +917,22 @@ const file_container_proto_rawDesc = "" +
 	"\x14GetOperationResponse\x12!\n" +
 	"\foperation_id\x18\x01 \x01(\tR\voperationId\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error2\xff\x03\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"\x8a\x01\n" +
+	"\x17SetServiceDomainRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x02 \x01(\tR\tprojectId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12#\n" +
+	"\rcustom_domain\x18\x04 \x01(\tR\fcustomDomain\"R\n" +
+	"\x18SetServiceDomainResponse\x126\n" +
+	"\aservice\x18\x01 \x01(\v2\x1c.dcloud.container.v1.ServiceR\aservice2\xf0\x04\n" +
 	"\x10ContainerService\x12Q\n" +
 	"\x06Health\x12\".dcloud.container.v1.HealthRequest\x1a#.dcloud.container.v1.HealthResponse\x12c\n" +
 	"\fListServices\x12(.dcloud.container.v1.ListServicesRequest\x1a).dcloud.container.v1.ListServicesResponse\x12f\n" +
 	"\rDeployService\x12).dcloud.container.v1.DeployServiceRequest\x1a*.dcloud.container.v1.DeployServiceResponse\x12f\n" +
 	"\rDeleteService\x12).dcloud.container.v1.DeleteServiceRequest\x1a*.dcloud.container.v1.DeleteServiceResponse\x12c\n" +
-	"\fGetOperation\x12(.dcloud.container.v1.GetOperationRequest\x1a).dcloud.container.v1.GetOperationResponseBDZBgithub.com/daigo-suhara/dcloud/internal/pb/containerpb;containerpbb\x06proto3"
+	"\fGetOperation\x12(.dcloud.container.v1.GetOperationRequest\x1a).dcloud.container.v1.GetOperationResponse\x12o\n" +
+	"\x10SetServiceDomain\x12,.dcloud.container.v1.SetServiceDomainRequest\x1a-.dcloud.container.v1.SetServiceDomainResponseBDZBgithub.com/daigo-suhara/dcloud/internal/pb/containerpb;containerpbb\x06proto3"
 
 var (
 	file_container_proto_rawDescOnce sync.Once
@@ -816,39 +946,44 @@ func file_container_proto_rawDescGZIP() []byte {
 	return file_container_proto_rawDescData
 }
 
-var file_container_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_container_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_container_proto_goTypes = []any{
-	(*Empty)(nil),                 // 0: dcloud.container.v1.Empty
-	(*HealthRequest)(nil),         // 1: dcloud.container.v1.HealthRequest
-	(*HealthResponse)(nil),        // 2: dcloud.container.v1.HealthResponse
-	(*Service)(nil),               // 3: dcloud.container.v1.Service
-	(*ListServicesRequest)(nil),   // 4: dcloud.container.v1.ListServicesRequest
-	(*ListServicesResponse)(nil),  // 5: dcloud.container.v1.ListServicesResponse
-	(*DeployServiceRequest)(nil),  // 6: dcloud.container.v1.DeployServiceRequest
-	(*DeployServiceResponse)(nil), // 7: dcloud.container.v1.DeployServiceResponse
-	(*DeleteServiceRequest)(nil),  // 8: dcloud.container.v1.DeleteServiceRequest
-	(*DeleteServiceResponse)(nil), // 9: dcloud.container.v1.DeleteServiceResponse
-	(*GetOperationRequest)(nil),   // 10: dcloud.container.v1.GetOperationRequest
-	(*GetOperationResponse)(nil),  // 11: dcloud.container.v1.GetOperationResponse
+	(*Empty)(nil),                    // 0: dcloud.container.v1.Empty
+	(*HealthRequest)(nil),            // 1: dcloud.container.v1.HealthRequest
+	(*HealthResponse)(nil),           // 2: dcloud.container.v1.HealthResponse
+	(*Service)(nil),                  // 3: dcloud.container.v1.Service
+	(*ListServicesRequest)(nil),      // 4: dcloud.container.v1.ListServicesRequest
+	(*ListServicesResponse)(nil),     // 5: dcloud.container.v1.ListServicesResponse
+	(*DeployServiceRequest)(nil),     // 6: dcloud.container.v1.DeployServiceRequest
+	(*DeployServiceResponse)(nil),    // 7: dcloud.container.v1.DeployServiceResponse
+	(*DeleteServiceRequest)(nil),     // 8: dcloud.container.v1.DeleteServiceRequest
+	(*DeleteServiceResponse)(nil),    // 9: dcloud.container.v1.DeleteServiceResponse
+	(*GetOperationRequest)(nil),      // 10: dcloud.container.v1.GetOperationRequest
+	(*GetOperationResponse)(nil),     // 11: dcloud.container.v1.GetOperationResponse
+	(*SetServiceDomainRequest)(nil),  // 12: dcloud.container.v1.SetServiceDomainRequest
+	(*SetServiceDomainResponse)(nil), // 13: dcloud.container.v1.SetServiceDomainResponse
 }
 var file_container_proto_depIdxs = []int32{
 	3,  // 0: dcloud.container.v1.ListServicesResponse.containers:type_name -> dcloud.container.v1.Service
 	3,  // 1: dcloud.container.v1.DeployServiceResponse.service:type_name -> dcloud.container.v1.Service
-	1,  // 2: dcloud.container.v1.ContainerService.Health:input_type -> dcloud.container.v1.HealthRequest
-	4,  // 3: dcloud.container.v1.ContainerService.ListServices:input_type -> dcloud.container.v1.ListServicesRequest
-	6,  // 4: dcloud.container.v1.ContainerService.DeployService:input_type -> dcloud.container.v1.DeployServiceRequest
-	8,  // 5: dcloud.container.v1.ContainerService.DeleteService:input_type -> dcloud.container.v1.DeleteServiceRequest
-	10, // 6: dcloud.container.v1.ContainerService.GetOperation:input_type -> dcloud.container.v1.GetOperationRequest
-	2,  // 7: dcloud.container.v1.ContainerService.Health:output_type -> dcloud.container.v1.HealthResponse
-	5,  // 8: dcloud.container.v1.ContainerService.ListServices:output_type -> dcloud.container.v1.ListServicesResponse
-	7,  // 9: dcloud.container.v1.ContainerService.DeployService:output_type -> dcloud.container.v1.DeployServiceResponse
-	9,  // 10: dcloud.container.v1.ContainerService.DeleteService:output_type -> dcloud.container.v1.DeleteServiceResponse
-	11, // 11: dcloud.container.v1.ContainerService.GetOperation:output_type -> dcloud.container.v1.GetOperationResponse
-	7,  // [7:12] is the sub-list for method output_type
-	2,  // [2:7] is the sub-list for method input_type
-	2,  // [2:2] is the sub-list for extension type_name
-	2,  // [2:2] is the sub-list for extension extendee
-	0,  // [0:2] is the sub-list for field type_name
+	3,  // 2: dcloud.container.v1.SetServiceDomainResponse.service:type_name -> dcloud.container.v1.Service
+	1,  // 3: dcloud.container.v1.ContainerService.Health:input_type -> dcloud.container.v1.HealthRequest
+	4,  // 4: dcloud.container.v1.ContainerService.ListServices:input_type -> dcloud.container.v1.ListServicesRequest
+	6,  // 5: dcloud.container.v1.ContainerService.DeployService:input_type -> dcloud.container.v1.DeployServiceRequest
+	8,  // 6: dcloud.container.v1.ContainerService.DeleteService:input_type -> dcloud.container.v1.DeleteServiceRequest
+	10, // 7: dcloud.container.v1.ContainerService.GetOperation:input_type -> dcloud.container.v1.GetOperationRequest
+	12, // 8: dcloud.container.v1.ContainerService.SetServiceDomain:input_type -> dcloud.container.v1.SetServiceDomainRequest
+	2,  // 9: dcloud.container.v1.ContainerService.Health:output_type -> dcloud.container.v1.HealthResponse
+	5,  // 10: dcloud.container.v1.ContainerService.ListServices:output_type -> dcloud.container.v1.ListServicesResponse
+	7,  // 11: dcloud.container.v1.ContainerService.DeployService:output_type -> dcloud.container.v1.DeployServiceResponse
+	9,  // 12: dcloud.container.v1.ContainerService.DeleteService:output_type -> dcloud.container.v1.DeleteServiceResponse
+	11, // 13: dcloud.container.v1.ContainerService.GetOperation:output_type -> dcloud.container.v1.GetOperationResponse
+	13, // 14: dcloud.container.v1.ContainerService.SetServiceDomain:output_type -> dcloud.container.v1.SetServiceDomainResponse
+	9,  // [9:15] is the sub-list for method output_type
+	3,  // [3:9] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_container_proto_init() }
@@ -862,7 +997,7 @@ func file_container_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_container_proto_rawDesc), len(file_container_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

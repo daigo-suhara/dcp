@@ -44,6 +44,11 @@ class ContainerClient:
             request_serializer=container_pb2.GetOperationRequest.SerializeToString,
             response_deserializer=container_pb2.GetOperationResponse.FromString,
         )
+        self._set_service_domain = channel.unary_unary(
+            "/dcloud.container.v1.ContainerService/SetServiceDomain",
+            request_serializer=container_pb2.SetServiceDomainRequest.SerializeToString,
+            response_deserializer=container_pb2.SetServiceDomainResponse.FromString,
+        )
 
     @classmethod
     def new(cls) -> "ContainerClient":
@@ -102,6 +107,20 @@ class ContainerClient:
         except grpc.RpcError as error:
             raise self._map_error(error) from error
 
+    def set_service_domain(self, user_id: str, project_id: str, name: str, custom_domain: str) -> dict[str, Any]:
+        try:
+            response = self._set_service_domain(
+                container_pb2.SetServiceDomainRequest(
+                    user_id=user_id,
+                    project_id=project_id,
+                    name=name,
+                    custom_domain=custom_domain,
+                )
+            )
+        except grpc.RpcError as error:
+            raise self._map_error(error) from error
+        return self._service_to_dict(response.service)
+
     def get_operation(self, operation_id: str) -> dict[str, Any]:
         try:
             response = self._get_operation(
@@ -124,6 +143,7 @@ class ContainerClient:
             "namespace": service.namespace,
             "projectId": service.project_id,
             "generation": service.generation,
+            "customDomain": service.custom_domain or None,
         }
 
     @staticmethod

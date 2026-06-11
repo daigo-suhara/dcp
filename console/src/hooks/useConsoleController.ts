@@ -574,6 +574,29 @@ export function useConsoleController() {
     }
   }
 
+  async function handleSetContainerDomain(name: string, customDomain: string) {
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(`/api/v1/container/${encodeURIComponent(name)}/domain`, {
+        method: "PUT",
+        credentials: "include",
+        headers: apiHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ customDomain: customDomain.trim() })
+      });
+      const data = (await readJsonResponse(response)) as DeployedService | ApiErrorResponse;
+      if (!response.ok) {
+        throw new Error(getApiErrorMessage(data, "ドメインの設定に失敗しました"));
+      }
+      if ("name" in data) {
+        setContainers((current) => current.map((c) => c.name === name ? { ...c, ...data } : c));
+        setMessage(customDomain.trim() ? `カスタムドメインを設定しました` : "カスタムドメインを削除しました");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "ドメインの設定に失敗しました");
+    }
+  }
+
   function requestDelete(name: string) {
     setPendingDeleteName(name);
   }
@@ -723,6 +746,7 @@ export function useConsoleController() {
     error,
     form,
     handleCreateProject,
+    handleSetContainerDomain,
     handleFormChange,
     handleComputeFormChange,
     handleAuthFormChange,

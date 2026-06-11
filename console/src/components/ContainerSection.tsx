@@ -5,7 +5,8 @@ import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import GitHubIcon from "@mui/icons-material/GitHub";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
-import { Box, Button, Card, CardContent, CircularProgress, IconButton, Paper, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Card, CardContent, CircularProgress, IconButton, Paper, TextField, Tooltip, Typography } from "@mui/material";
+import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import type { DeployedService } from "../types";
 import { actionLinkButtonSx } from "../theme";
@@ -19,6 +20,7 @@ type ContainerSectionProps = {
   onDeleteService: (name: string) => void;
   onOpenService: (name: string) => void;
   onRepoConnectClick: () => void;
+  onSetDomain: (name: string, domain: string) => Promise<void>;
   selectedService: DeployedService | null;
   selectedStatus: ReturnType<typeof getServiceStatus> | null;
   containers: DeployedService[];
@@ -32,10 +34,13 @@ export function ContainerSection({
   onDeleteService,
   onOpenService,
   onRepoConnectClick,
+  onSetDomain,
   selectedService,
   selectedStatus,
   containers
 }: ContainerSectionProps) {
+  const [domainInput, setDomainInput] = useState("");
+  const [savingDomain, setSavingDomain] = useState(false);
   const selectedStatusIcon =
     selectedStatus === "ready" ? (
       <CheckCircleIcon fontSize="small" />
@@ -111,6 +116,62 @@ export function ContainerSection({
                   </Typography>
                   <Typography sx={{ mt: 0.5, fontWeight: 600 }}>{selectedService.createdAt ?? "-"}</Typography>
                 </Paper>
+              </Box>
+
+              <Box sx={{ display: "grid", gap: 1.5 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  カスタムドメイン
+                </Typography>
+                {selectedService.customDomain ? (
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+                    <Button
+                      component="a"
+                      href={`https://${selectedService.customDomain}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      variant="text"
+                      size="small"
+                      sx={{ ...actionLinkButtonSx, fontWeight: 700 }}
+                    >
+                      {selectedService.customDomain}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      disabled={savingDomain}
+                      onClick={async () => {
+                        setSavingDomain(true);
+                        try { await onSetDomain(selectedService.name, ""); } finally { setSavingDomain(false); }
+                      }}
+                    >
+                      {savingDomain ? <CircularProgress size={14} thickness={5} sx={{ color: "inherit" }} /> : "削除"}
+                    </Button>
+                  </Paper>
+                ) : (
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                    <TextField
+                      size="small"
+                      placeholder="example.com"
+                      value={domainInput}
+                      onChange={(e) => setDomainInput(e.target.value)}
+                      disabled={savingDomain}
+                      sx={{ flex: 1 }}
+                    />
+                    <Button
+                      variant="contained"
+                      size="small"
+                      disabled={savingDomain || !domainInput.trim()}
+                      onClick={async () => {
+                        setSavingDomain(true);
+                        try { await onSetDomain(selectedService.name, domainInput); setDomainInput(""); } finally { setSavingDomain(false); }
+                      }}
+                      sx={{ whiteSpace: "nowrap", height: 40 }}
+                    >
+                      {savingDomain ? <CircularProgress size={14} thickness={5} sx={{ color: "inherit" }} /> : "設定"}
+                    </Button>
+                  </Box>
+                )}
               </Box>
 
               <Box sx={{ display: "flex", justifyContent: "flex-end" }}>

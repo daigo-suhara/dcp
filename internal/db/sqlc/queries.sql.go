@@ -25,7 +25,19 @@ type CreateOperationParams struct {
 	CreatedAt    string
 }
 
-func (q *Queries) CreateOperation(ctx context.Context, arg CreateOperationParams) (Operation, error) {
+type CreateOperationRow struct {
+	ID           string
+	Status       string
+	Error        sql.NullString
+	ResourceType sql.NullString
+	ResourceName sql.NullString
+	UserID       sql.NullString
+	ProjectID    sql.NullString
+	CreatedAt    string
+	UpdatedAt    string
+}
+
+func (q *Queries) CreateOperation(ctx context.Context, arg CreateOperationParams) (CreateOperationRow, error) {
 	row := q.db.QueryRowContext(ctx, createOperation,
 		arg.ID,
 		arg.ResourceType,
@@ -34,7 +46,7 @@ func (q *Queries) CreateOperation(ctx context.Context, arg CreateOperationParams
 		arg.ProjectID,
 		arg.CreatedAt,
 	)
-	var i Operation
+	var i CreateOperationRow
 	err := row.Scan(
 		&i.ID,
 		&i.Status,
@@ -116,15 +128,57 @@ func (q *Queries) DeleteProject(ctx context.Context, arg DeleteProjectParams) (i
 	return result.RowsAffected()
 }
 
+const getContainer = `-- name: GetContainer :one
+SELECT project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation, custom_domain
+FROM containers
+WHERE project_id = $1 AND name = $2
+`
+
+type GetContainerParams struct {
+	ProjectID string
+	Name      string
+}
+
+func (q *Queries) GetContainer(ctx context.Context, arg GetContainerParams) (Container, error) {
+	row := q.db.QueryRowContext(ctx, getContainer, arg.ProjectID, arg.Name)
+	var i Container
+	err := row.Scan(
+		&i.ProjectID,
+		&i.Name,
+		&i.Image,
+		&i.Url,
+		&i.Ready,
+		&i.Reason,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Namespace,
+		&i.Generation,
+		&i.CustomDomain,
+	)
+	return i, err
+}
+
 const getOperation = `-- name: GetOperation :one
 SELECT id, status, error, resource_type, resource_name, user_id, project_id, created_at, updated_at
 FROM operations
 WHERE id = $1
 `
 
-func (q *Queries) GetOperation(ctx context.Context, id string) (Operation, error) {
+type GetOperationRow struct {
+	ID           string
+	Status       string
+	Error        sql.NullString
+	ResourceType sql.NullString
+	ResourceName sql.NullString
+	UserID       sql.NullString
+	ProjectID    sql.NullString
+	CreatedAt    string
+	UpdatedAt    string
+}
+
+func (q *Queries) GetOperation(ctx context.Context, id string) (GetOperationRow, error) {
 	row := q.db.QueryRowContext(ctx, getOperation, id)
-	var i Operation
+	var i GetOperationRow
 	err := row.Scan(
 		&i.ID,
 		&i.Status,
@@ -140,7 +194,7 @@ func (q *Queries) GetOperation(ctx context.Context, id string) (Operation, error
 }
 
 const listContainers = `-- name: ListContainers :many
-SELECT project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation
+SELECT project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation, custom_domain
 FROM containers
 WHERE project_id = $1
 ORDER BY created_at, name
@@ -166,6 +220,7 @@ func (q *Queries) ListContainers(ctx context.Context, projectID string) ([]Conta
 			&i.UpdatedAt,
 			&i.Namespace,
 			&i.Generation,
+			&i.CustomDomain,
 		); err != nil {
 			return nil, err
 		}
@@ -186,15 +241,27 @@ FROM operations
 WHERE status = 'pending' AND resource_type = $1
 `
 
-func (q *Queries) ListPendingOperationsByResourceType(ctx context.Context, resourceType sql.NullString) ([]Operation, error) {
+type ListPendingOperationsByResourceTypeRow struct {
+	ID           string
+	Status       string
+	Error        sql.NullString
+	ResourceType sql.NullString
+	ResourceName sql.NullString
+	UserID       sql.NullString
+	ProjectID    sql.NullString
+	CreatedAt    string
+	UpdatedAt    string
+}
+
+func (q *Queries) ListPendingOperationsByResourceType(ctx context.Context, resourceType sql.NullString) ([]ListPendingOperationsByResourceTypeRow, error) {
 	rows, err := q.db.QueryContext(ctx, listPendingOperationsByResourceType, resourceType)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Operation
+	var items []ListPendingOperationsByResourceTypeRow
 	for rows.Next() {
-		var i Operation
+		var i ListPendingOperationsByResourceTypeRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Status,
@@ -274,6 +341,31 @@ func (q *Queries) ProjectExists(ctx context.Context, arg ProjectExistsParams) (b
 	return exists, err
 }
 
+const updateContainerDomain = `-- name: UpdateContainerDomain :execrows
+UPDATE containers SET custom_domain = $3, updated_at = $4
+WHERE project_id = $1 AND name = $2
+`
+
+type UpdateContainerDomainParams struct {
+	ProjectID    string
+	Name         string
+	CustomDomain sql.NullString
+	UpdatedAt    string
+}
+
+func (q *Queries) UpdateContainerDomain(ctx context.Context, arg UpdateContainerDomainParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateContainerDomain,
+		arg.ProjectID,
+		arg.Name,
+		arg.CustomDomain,
+		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const updateOperation = `-- name: UpdateOperation :exec
 UPDATE operations
 SET status = $2, error = $3, updated_at = $4
@@ -311,7 +403,7 @@ ON CONFLICT (project_id, name) DO UPDATE SET
     updated_at = EXCLUDED.updated_at,
     namespace = EXCLUDED.namespace,
     generation = containers.generation + 1
-RETURNING project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation
+RETURNING project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation, custom_domain
 `
 
 type UpsertContainerParams struct {
@@ -348,6 +440,7 @@ func (q *Queries) UpsertContainer(ctx context.Context, arg UpsertContainerParams
 		&i.UpdatedAt,
 		&i.Namespace,
 		&i.Generation,
+		&i.CustomDomain,
 	)
 	return i, err
 }

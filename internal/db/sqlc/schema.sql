@@ -39,6 +39,8 @@ CREATE TABLE IF NOT EXISTS containers (
 CREATE INDEX IF NOT EXISTS idx_containers_project_created_at
     ON containers (project_id, created_at, name);
 
+ALTER TABLE containers ADD COLUMN IF NOT EXISTS custom_domain TEXT;
+
 CREATE TABLE IF NOT EXISTS identity_users (
     id TEXT PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,

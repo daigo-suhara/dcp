@@ -34,6 +34,8 @@ type DeleteServiceRequest = containerpb.DeleteServiceRequest
 type DeleteServiceResponse = containerpb.DeleteServiceResponse
 type GetOperationRequest = containerpb.GetOperationRequest
 type GetOperationResponse = containerpb.GetOperationResponse
+type SetServiceDomainRequest = containerpb.SetServiceDomainRequest
+type SetServiceDomainResponse = containerpb.SetServiceDomainResponse
 type ContainerServer = containerpb.ContainerServiceServer
 
 func newOperationID() (string, error) {
@@ -61,6 +63,7 @@ type deployedService struct {
 	Name         string
 	Image        string
 	URL          string
+	CustomDomain string
 	ResourceName string
 	Ready        bool
 	Reason       string
@@ -123,19 +126,35 @@ func (s *containerServer) ListServices(ctx context.Context, req *ListServicesReq
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to query containers")
 	}
+	dbRecords, err := s.q.ListContainers(ctx, projectID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query container metadata")
+	}
+	customDomains := make(map[string]string, len(dbRecords))
+	for _, r := range dbRecords {
+		if r.CustomDomain.Valid {
+			customDomains[r.Name] = r.CustomDomain.String
+		}
+	}
 	items := make([]*Service, 0, len(records))
 	for _, record := range records {
+		cd := customDomains[record.Name]
+		url := record.URL
+		if cd != "" {
+			url = s.knative.customURL(cd)
+		}
 		items = append(items, &Service{
-			Name:       record.Name,
-			Image:      record.Image,
-			Url:        record.URL,
-			Ready:      record.Ready,
-			Reason:     record.Reason,
-			CreatedAt:  record.CreatedAt,
-			UpdatedAt:  record.UpdatedAt,
-			Namespace:  record.Namespace,
-			ProjectId:  record.ProjectID,
-			Generation: record.Generation,
+			Name:         record.Name,
+			Image:        record.Image,
+			Url:          url,
+			Ready:        record.Ready,
+			Reason:       record.Reason,
+			CreatedAt:    record.CreatedAt,
+			UpdatedAt:    record.UpdatedAt,
+			Namespace:    record.Namespace,
+			ProjectId:    record.ProjectID,
+			Generation:   record.Generation,
+			CustomDomain: cd,
 		})
 	}
 	return &ListServicesResponse{UserId: userID, ProjectId: projectID, Namespace: s.namespace, Containers: items}, nil
@@ -234,11 +253,16 @@ func (s *containerServer) DeleteService(ctx context.Context, req *DeleteServiceR
 	}); err != nil {
 		return nil, status.Error(codes.Internal, "failed to create operation")
 	}
+	dbRecord, _ := s.q.GetContainer(ctx, dbsqlc.GetContainerParams{ProjectID: projectID, Name: name})
+	customDomain := ""
+	if dbRecord.CustomDomain.Valid {
+		customDomain = dbRecord.CustomDomain.String
+	}
 	go func() {
 		bgCtx := context.Background()
 		errMsg := sql.NullString{}
 		newStatus := "done"
-		if err := s.knative.delete(bgCtx, projectScope{UserID: userID, ProjectID: projectID}, name); err != nil {
+		if err := s.knative.delete(bgCtx, projectScope{UserID: userID, ProjectID: projectID}, name, customDomain); err != nil {
 			newStatus = "error"
 			errMsg = sql.NullString{String: err.Error(), Valid: true}
 		} else {
@@ -271,6 +295,70 @@ func (s *containerServer) GetOperation(ctx context.Context, req *GetOperationReq
 		errStr = op.Error.String
 	}
 	return &GetOperationResponse{OperationId: op.ID, Status: op.Status, Error: errStr}, nil
+}
+
+func (s *containerServer) SetServiceDomain(ctx context.Context, req *SetServiceDomainRequest) (*SetServiceDomainResponse, error) {
+	userID := strings.TrimSpace(req.UserId)
+	projectID := strings.TrimSpace(req.ProjectId)
+	name := strings.TrimSpace(req.Name)
+	customDomain := strings.TrimSpace(req.CustomDomain)
+	if userID == "" || projectID == "" || name == "" {
+		return nil, status.Error(codes.InvalidArgument, "userId, projectId, and name are required")
+	}
+	exists, err := s.projectExists(ctx, userID, projectID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to query project")
+	}
+	if !exists {
+		return nil, status.Error(codes.NotFound, "project not found")
+	}
+	dbRecord, err := s.q.GetContainer(ctx, dbsqlc.GetContainerParams{ProjectID: projectID, Name: name})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, status.Error(codes.NotFound, "container not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to query container")
+	}
+	prevCustomDomain := ""
+	if dbRecord.CustomDomain.Valid {
+		prevCustomDomain = dbRecord.CustomDomain.String
+	}
+	if customDomain != "" {
+		if err := s.knative.setCustomDomain(ctx, projectScope{UserID: userID, ProjectID: projectID}, name, customDomain); err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to apply domain mapping: %v", err)
+		}
+	} else if prevCustomDomain != "" {
+		if err := s.knative.deleteDomainMapping(ctx, prevCustomDomain); err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to delete domain mapping: %v", err)
+		}
+	}
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if _, err := s.q.UpdateContainerDomain(ctx, dbsqlc.UpdateContainerDomainParams{
+		ProjectID:    projectID,
+		Name:         name,
+		CustomDomain: sql.NullString{String: customDomain, Valid: customDomain != ""},
+		UpdatedAt:    now,
+	}); err != nil {
+		return nil, status.Error(codes.Internal, "failed to update container domain")
+	}
+	url := s.knative.publicURL(serviceResourceName(projectID, name))
+	if customDomain != "" {
+		url = s.knative.customURL(customDomain)
+	}
+	svc := &Service{
+		Name:         name,
+		Image:        dbRecord.Image,
+		Url:          url,
+		Ready:        dbRecord.Ready,
+		Reason:       dbRecord.Reason.String,
+		CreatedAt:    dbRecord.CreatedAt,
+		UpdatedAt:    now,
+		Namespace:    dbRecord.Namespace,
+		ProjectId:    projectID,
+		Generation:   dbRecord.Generation,
+		CustomDomain: customDomain,
+	}
+	return &SetServiceDomainResponse{Service: svc}, nil
 }
 
 func RegisterContainerServer(server *grpc.Server, impl ContainerServer) {

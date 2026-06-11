@@ -294,7 +294,7 @@ func (s *computeServer) reconcileDeletions(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.reconcileResourceType(ctx, "vm", func(op dbsqlc.Operation) bool {
+			s.reconcileResourceType(ctx, "vm", func(op dbsqlc.ListPendingOperationsByResourceTypeRow) bool {
 				if !op.UserID.Valid || !op.ProjectID.Valid || !op.ResourceName.Valid {
 					return false
 				}
@@ -309,7 +309,7 @@ func (s *computeServer) reconcileDeletions(ctx context.Context) {
 				}
 				return true
 			}, nil)
-			s.reconcileResourceType(ctx, "project", func(op dbsqlc.Operation) bool {
+			s.reconcileResourceType(ctx, "project", func(op dbsqlc.ListPendingOperationsByResourceTypeRow) bool {
 				if !op.UserID.Valid || !op.ProjectID.Valid {
 					return false
 				}
@@ -325,7 +325,7 @@ func (s *computeServer) reconcileDeletions(ctx context.Context) {
 					return false
 				}
 				return len(containers) == 0
-			}, func(op dbsqlc.Operation) error {
+			}, func(op dbsqlc.ListPendingOperationsByResourceTypeRow) error {
 				if !op.UserID.Valid || !op.ProjectID.Valid {
 					return fmt.Errorf("missing user/project on operation %s", op.ID)
 				}
@@ -339,7 +339,7 @@ func (s *computeServer) reconcileDeletions(ctx context.Context) {
 	}
 }
 
-func (s *computeServer) reconcileResourceType(ctx context.Context, resourceType string, isDone func(dbsqlc.Operation) bool, onDone func(dbsqlc.Operation) error) {
+func (s *computeServer) reconcileResourceType(ctx context.Context, resourceType string, isDone func(dbsqlc.ListPendingOperationsByResourceTypeRow) bool, onDone func(dbsqlc.ListPendingOperationsByResourceTypeRow) error) {
 	ops, err := s.q.ListPendingOperationsByResourceType(ctx, sql.NullString{String: resourceType, Valid: true})
 	if err != nil || len(ops) == 0 {
 		return

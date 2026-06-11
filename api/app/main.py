@@ -342,6 +342,29 @@ def delete_container(
     return {"status": "deleting", "operationId": operation_id}
 
 
+@app.put("/api/v1/container/{name}/domain")
+def set_container_domain(
+    name: str,
+    body: dict[str, Any],
+    request: Request,
+    x_dcp_project: str | None = Header(default=None, alias="X-DCP-Project"),
+) -> dict[str, Any]:
+    user = current_user(request)
+    project_id = (x_dcp_project or "").strip()
+    if not project_id:
+        raise HTTPException(status_code=400, detail="プロジェクトを選択してください")
+    ensure_project_not_deleting(project_id)
+    custom_domain = str(body.get("customDomain", "")).strip()
+    try:
+        return app.state.container_client.set_service_domain(user["id"], project_id, name, custom_domain)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="サービスが見つかりません") from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @app.get("/api/v1/operations/{operation_id}")
 def get_operation(operation_id: str, request: Request) -> dict[str, str]:
     current_user(request)

@@ -10,6 +10,7 @@ service ContainerService {
   rpc DeployService(DeployServiceRequest) returns (DeployServiceResponse);
   rpc DeleteService(DeleteServiceRequest) returns (DeleteServiceResponse);
   rpc GetOperation(GetOperationRequest) returns (GetOperationResponse);
+  rpc SetServiceDomain(SetServiceDomainRequest) returns (SetServiceDomainResponse);
 }
 
 message Empty {}
@@ -33,6 +34,7 @@ message Service {
   string namespace = 8;
   string project_id = 9;
   int64 generation = 10;
+  string custom_domain = 11;
 }
 
 message ListServicesRequest {
@@ -79,4 +81,15 @@ message GetOperationResponse {
   string operation_id = 1;
   string status = 2;
   string error = 3;
+}
+
+message SetServiceDomainRequest {
+  string user_id = 1;
+  string project_id = 2;
+  string name = 3;
+  string custom_domain = 4;
+}
+
+message SetServiceDomainResponse {
+  Service service = 1;
 }

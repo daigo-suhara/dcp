@@ -148,6 +148,7 @@ function AppContent() {
             onDeleteService={controller.requestDelete}
             onOpenService={controller.handleOpenService}
             onRepoConnectClick={controller.handleOpenRepository}
+            onSetDomain={controller.handleSetContainerDomain}
             selectedService={controller.selectedService}
             selectedStatus={controller.selectedStatus}
             containers={controller.containers}

@@ -66,7 +66,83 @@ func newKnativeServiceManager(namespace string, publicDomain string) (*knativeSe
 }
 
 func (m *knativeServiceManager) publicURL(resourceName string) string {
-	return fmt.Sprintf("http://%s.%s", resourceName, m.publicDomain)
+	return fmt.Sprintf("https://%s.%s", resourceName, m.publicDomain)
+}
+
+func (m *knativeServiceManager) customURL(domain string) string {
+	return fmt.Sprintf("https://%s", domain)
+}
+
+func (m *knativeServiceManager) applyDomainMapping(ctx context.Context, domainName, resourceName string, labels map[string]string) error {
+	body, err := json.Marshal(map[string]any{
+		"apiVersion": "serving.knative.dev/v1beta1",
+		"kind":       "DomainMapping",
+		"metadata": map[string]any{
+			"name":      domainName,
+			"namespace": m.namespace,
+			"labels":    labels,
+		},
+		"spec": map[string]any{
+			"ref": map[string]any{
+				"apiVersion": "serving.knative.dev/v1",
+				"kind":       "Service",
+				"name":       resourceName,
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch,
+		fmt.Sprintf("%s/apis/serving.knative.dev/v1beta1/namespaces/%s/domainmappings/%s?fieldManager=dcloud-container&force=true", m.baseURL, m.namespace, domainName),
+		bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	m.authorize(req)
+	req.Header.Set("Content-Type", "application/apply-patch+yaml")
+	req.Header.Set("Accept", "application/json")
+	res, err := m.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= 300 {
+		return decodeAPIError(res)
+	}
+	return nil
+}
+
+func (m *knativeServiceManager) deleteDomainMapping(ctx context.Context, domainName string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete,
+		fmt.Sprintf("%s/apis/serving.knative.dev/v1beta1/namespaces/%s/domainmappings/%s", m.baseURL, m.namespace, domainName),
+		nil)
+	if err != nil {
+		return err
+	}
+	m.authorize(req)
+	res, err := m.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	if res.StatusCode >= 300 && res.StatusCode != http.StatusNotFound {
+		return decodeAPIError(res)
+	}
+	return nil
+}
+
+func (m *knativeServiceManager) setCustomDomain(ctx context.Context, scope projectScope, name, customDomain string) error {
+	resourceName := serviceResourceName(scope.ProjectID, name)
+	labels := map[string]string{
+		"app.kubernetes.io/instance":   "dcloud",
+		"app.kubernetes.io/component":  "container",
+		"app.kubernetes.io/managed-by": userServiceManagerLabel,
+		userLabelKey:                   scope.UserID,
+		projectLabelKey:                scope.ProjectID,
+		serviceNameLabel:               name,
+	}
+	return m.applyDomainMapping(ctx, customDomain, resourceName, labels)
 }
 
 func (m *knativeServiceManager) list(ctx context.Context, scope projectScope) ([]deployedService, error) {
@@ -242,47 +318,16 @@ func (m *knativeServiceManager) deploy(ctx context.Context, scope projectScope, 
 		return deployedService{}, err
 	}
 
-	domainMapping := map[string]any{
-		"apiVersion": "serving.knative.dev/v1beta1",
-		"kind":       "DomainMapping",
-		"metadata": map[string]any{
-			"name":      fmt.Sprintf("%s.%s", resourceName, m.publicDomain),
-			"namespace": m.namespace,
-			"labels": map[string]string{
-				"app.kubernetes.io/instance":   "dcloud",
-				"app.kubernetes.io/component":  "container",
-				"app.kubernetes.io/managed-by": userServiceManagerLabel,
-				userLabelKey:                   scope.UserID,
-				projectLabelKey:                scope.ProjectID,
-				serviceNameLabel:               req.Name,
-			},
-		},
-		"spec": map[string]any{
-			"ref": map[string]any{
-				"apiVersion": "serving.knative.dev/v1",
-				"kind":       "Service",
-				"name":       resourceName,
-			},
-		},
+	defaultDomainLabels := map[string]string{
+		"app.kubernetes.io/instance":   "dcloud",
+		"app.kubernetes.io/component":  "container",
+		"app.kubernetes.io/managed-by": userServiceManagerLabel,
+		userLabelKey:                   scope.UserID,
+		projectLabelKey:                scope.ProjectID,
+		serviceNameLabel:               req.Name,
 	}
-	domainBody, err := json.Marshal(domainMapping)
-	if err != nil {
+	if err := m.applyDomainMapping(ctx, fmt.Sprintf("%s.%s", resourceName, m.publicDomain), resourceName, defaultDomainLabels); err != nil {
 		return deployedService{}, err
-	}
-	domainReq, err := http.NewRequestWithContext(ctx, http.MethodPatch, fmt.Sprintf("%s/apis/serving.knative.dev/v1beta1/namespaces/%s/domainmappings/%s.%s?fieldManager=dcloud-container&force=true", m.baseURL, m.namespace, resourceName, m.publicDomain), bytes.NewReader(domainBody))
-	if err != nil {
-		return deployedService{}, err
-	}
-	m.authorize(domainReq)
-	domainReq.Header.Set("Content-Type", "application/apply-patch+yaml")
-	domainReq.Header.Set("Accept", "application/json")
-	domainRes, err := m.client.Do(domainReq)
-	if err != nil {
-		return deployedService{}, err
-	}
-	defer domainRes.Body.Close()
-	if domainRes.StatusCode >= 300 {
-		return deployedService{}, decodeAPIError(domainRes)
 	}
 
 	service := deployedService{
@@ -312,22 +357,16 @@ func (m *knativeServiceManager) deploy(ctx context.Context, scope projectScope, 
 	return service, nil
 }
 
-func (m *knativeServiceManager) delete(ctx context.Context, scope projectScope, name string) error {
+func (m *knativeServiceManager) delete(ctx context.Context, scope projectScope, name, customDomain string) error {
 	resourceName := serviceResourceName(scope.ProjectID, name)
-	domainReq, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf("%s/apis/serving.knative.dev/v1beta1/namespaces/%s/domainmappings/%s.%s", m.baseURL, m.namespace, resourceName, m.publicDomain), nil)
-	if err != nil {
+	if customDomain != "" {
+		if err := m.deleteDomainMapping(ctx, customDomain); err != nil {
+			return err
+		}
+	}
+	if err := m.deleteDomainMapping(ctx, fmt.Sprintf("%s.%s", resourceName, m.publicDomain)); err != nil {
 		return err
 	}
-	m.authorize(domainReq)
-	domainRes, err := m.client.Do(domainReq)
-	if err != nil {
-		return err
-	}
-	defer domainRes.Body.Close()
-	if domainRes.StatusCode >= 300 && domainRes.StatusCode != http.StatusNotFound {
-		return decodeAPIError(domainRes)
-	}
-
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, fmt.Sprintf("%s/apis/serving.knative.dev/v1/namespaces/%s/services/%s", m.baseURL, m.namespace, resourceName), nil)
 	if err != nil {
 		return err

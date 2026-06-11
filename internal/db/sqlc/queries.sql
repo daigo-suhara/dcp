@@ -22,10 +22,15 @@ SELECT EXISTS (
 );
 
 -- name: ListContainers :many
-SELECT project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation
+SELECT project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation, custom_domain
 FROM containers
 WHERE project_id = $1
 ORDER BY created_at, name;
+
+-- name: GetContainer :one
+SELECT project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation, custom_domain
+FROM containers
+WHERE project_id = $1 AND name = $2;
 
 -- name: UpsertContainer :one
 INSERT INTO containers (
@@ -41,7 +46,11 @@ ON CONFLICT (project_id, name) DO UPDATE SET
     updated_at = EXCLUDED.updated_at,
     namespace = EXCLUDED.namespace,
     generation = containers.generation + 1
-RETURNING project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation;
+RETURNING project_id, name, image, url, ready, reason, created_at, updated_at, namespace, generation, custom_domain;
+
+-- name: UpdateContainerDomain :execrows
+UPDATE containers SET custom_domain = $3, updated_at = $4
+WHERE project_id = $1 AND name = $2;
 
 -- name: DeleteContainer :execrows
 DELETE FROM containers

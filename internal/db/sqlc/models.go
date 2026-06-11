@@ -9,16 +9,17 @@ import (
 )
 
 type Container struct {
-	ProjectID  string
-	Name       string
-	Image      string
-	Url        string
-	Ready      bool
-	Reason     sql.NullString
-	CreatedAt  string
-	UpdatedAt  string
-	Namespace  string
-	Generation int64
+	ProjectID    string
+	Name         string
+	Image        string
+	Url          string
+	Ready        bool
+	Reason       sql.NullString
+	CreatedAt    string
+	UpdatedAt    string
+	Namespace    string
+	Generation   int64
+	CustomDomain sql.NullString
 }
 
 type IdentitySession struct {
@@ -43,12 +44,12 @@ type Operation struct {
 	ID           string
 	Status       string
 	Error        sql.NullString
+	CreatedAt    string
+	UpdatedAt    string
 	ResourceType sql.NullString
 	ResourceName sql.NullString
 	UserID       sql.NullString
 	ProjectID    sql.NullString
-	CreatedAt    string
-	UpdatedAt    string
 }
 
 type Project struct {
